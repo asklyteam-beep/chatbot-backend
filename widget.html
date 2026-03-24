@@ -58,4 +58,146 @@
     overflow-y: auto;
     padding: 16px;
     display: flex;
-    flex-d
+    flex-direction: column;
+    gap: 10px;
+    background: #f9fafb;
+  }
+  .msg {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .msg.bot {
+    background: white;
+    border: 1px solid #e5e7eb;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .msg.user {
+    background: #1a56db;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  #chatbot-input-row {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid #e5e7eb;
+    background: white;
+  }
+  #chatbot-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+  }
+  #chatbot-send {
+    background: #1a56db;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #chatbot-send:disabled { opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<button id="chatbot-btn">💬</button>
+
+<div id="chatbot-box">
+  <div id="chatbot-header">
+    <span id="chatbot-title">Assistent</span>
+    <button id="chatbot-close">✕</button>
+  </div>
+  <div id="chatbot-messages">
+    <div class="msg bot" id="welcome-msg">Hallo! Wie kann ich Ihnen helfen?</div>
+  </div>
+  <div id="chatbot-input-row">
+    <input id="chatbot-input" type="text" placeholder="Ihre Frage..." />
+    <button id="chatbot-send">→</button>
+  </div>
+</div>
+
+<script>
+  const BACKEND = 'https://sweet-determination-production.up.railway.app';
+  const WEBSITE_URL = 'https://www.meggen.ch';
+  const BOT_NAME = 'Gemeinde Meggen Assistent';
+  const WELCOME_MSG = 'Hallo! Ich beantworte gerne Ihre Fragen zur Gemeinde Meggen.';
+
+  document.getElementById('chatbot-title').textContent = BOT_NAME;
+  document.getElementById('welcome-msg').textContent = WELCOME_MSG;
+
+  let context = '';
+
+  async function loadContext() {
+    try {
+      const res = await fetch(`${BACKEND}/api/scrape?url=${encodeURIComponent(WEBSITE_URL)}`);
+      const data = await res.json();
+      context = data.text || '';
+    } catch(e) { context = ''; }
+  }
+
+  function addMsg(text, type) {
+    const box = document.getElementById('chatbot-messages');
+    const div = document.createElement('div');
+    div.className = `msg ${type}`;
+    div.innerHTML = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  function cleanReply(text) {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/#{1,3} /g, '')
+      .replace(/ - /g, '<br>• ')
+      .replace(/\n/g, '<br>');
+  }
+
+  async function send() {
+    const input = document.getElementById('chatbot-input');
+    const btn = document.getElementById('chatbot-send');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    btn.disabled = true;
+    addMsg(text, 'user');
+    const loading = addMsg('...', 'bot');
+    try {
+      const res = await fetch(`${BACKEND}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, context })
+      });
+      const data = await res.json();
+      loading.innerHTML = cleanReply(data.reply || 'Keine Antwort erhalten.');
+    } catch(e) {
+      loading.innerHTML = 'Verbindungsfehler. Bitte erneut versuchen.';
+    }
+    btn.disabled = false;
+  }
+
+  document.getElementById('chatbot-btn').onclick = () => {
+    document.getElementById('chatbot-box').classList.toggle('open');
+    if (!context) loadContext();
+  };
+  document.getElementById('chatbot-close').onclick = () => {
+    document.getElementById('chatbot-box').classList.remove('open');
+  };
+  document.getElementById('chatbot-send').onclick = send;
+  document.getElementById('chatbot-input').onkeydown = e => {
+    if (e.key === 'Enter') send();
+  };
+</script>
+</body>
+</html>
