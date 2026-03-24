@@ -30,8 +30,7 @@ app.post("/api/chat", async (req, res) => {
   const response = await client.messages.create({
     model: "claude-opus-4-5",
     max_tokens: 1024,
-    system: "Du bist ein präziser Website-Assistent. Halte dich strikt an diese Regeln:
-system: "Du bist ein präziser Website-Assistent. Antworte NUR basierend auf dem Website-Kontext. Maximal 2-3 kurze Sätze. Wenn die Information fehlt, sage nur: Diese Information liegt mir nicht vor. Bitte kontaktieren Sie die Gemeinde direkt. Keine Einleitungen, keine Spekulationen.",
+    system: "Du bist ein präziser Website-Assistent. Antworte NUR basierend auf dem Website-Kontext. Maximal 2-3 kurze Sätze. Wenn die Information fehlt, sage nur: Diese Information liegt mir leider nicht vor. Bitte kontaktieren Sie uns direkt über die Kontaktangaben auf der Website. Keine Einleitungen, keine Spekulationen.",
     messages: [
       {
         role: "user",
