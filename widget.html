@@ -125,7 +125,6 @@
   }
   #chatbot-input:focus { border-color: #2D2FFF; background: white; }
 
-  /* Send + Mic: gleicher blauer Kreis-Stil */
   #chatbot-send, #askly-mic-btn {
     background: #2D2FFF;
     color: white;
@@ -210,21 +209,21 @@
     <div id="chatbot-input-row">
       <input id="chatbot-input" type="text" placeholder="Ihre Frage..." />
 
-      <!-- Send-Button -->
-      <button id="chatbot-send" title="Nachricht senden">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M22 2L11 13" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-
-      <!-- Mikrofon-Button -->
+      <!-- Mikrofon links vom Send -->
       <button id="askly-mic-btn" title="Spracheingabe">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="9" y="2" width="6" height="12" rx="3"/>
           <path d="M5 10a7 7 0 0 0 14 0"/>
           <line x1="12" y1="19" x2="12" y2="22"/>
           <line x1="9" y1="22" x2="15" y2="22"/>
+        </svg>
+      </button>
+
+      <!-- Send rechts -->
+      <button id="chatbot-send" title="Nachricht senden">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M22 2L11 13" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
     </div>
