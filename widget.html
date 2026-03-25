@@ -106,21 +106,21 @@
     cursor: pointer;
   }
   #chatbot-send:disabled { opacity: 0.5; }
-  .typing-dot {
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+  .dot {
     display: inline-block;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: #93a3b8;
     margin: 0 2px;
-    animation: typing 1.2s infinite ease-in-out;
-}
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typing {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-    30% { transform: translateY(-6px); opacity: 1; }
-}
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
 </style>
 </head>
 <body>
@@ -160,11 +160,11 @@
     } catch(e) { context = ''; }
   }
 
-  function addMsg(text, type) {
+  function addMsg(html, type) {
     const box = document.getElementById('chatbot-messages');
     const div = document.createElement('div');
-    div.className = `msg ${type}`;
-    div.innerHTML = text;
+    div.className = 'msg ' + type;
+    div.innerHTML = html;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
     return div;
@@ -187,7 +187,7 @@
     input.value = '';
     btn.disabled = true;
     addMsg(text, 'user');
-    const loading = addMsg('<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>', 'bot');
+    const loading = addMsg('<span class="dot"></span><span class="dot"></span><span class="dot"></span>', 'bot');
     try {
       const res = await fetch(`${BACKEND}/api/chat`, {
         method: 'POST',
