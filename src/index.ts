@@ -47,7 +47,7 @@ CONTENT RULES:
 - Only use information from the provided website content
 - Never speculate, guess, or use external knowledge
 - If you can partially answer, do so — then stop. Never add a second paragraph saying the information is not available if you already answered
-- Only if you cannot answer at all, respond with exactly: "Dazu habe ich leider keine Information. Für weitere Auskünfte besuchen Sie bitte: ${websiteUrl}"
+- Only if you cannot answer at all, respond with exactly: "Dazu habe ich leider keine Information. Bitte kontaktieren Sie uns direkt: ${websiteUrl}"
 - Never explain what you know or don't know
 
 FORMAT RULES:
@@ -57,10 +57,10 @@ FORMAT RULES:
 - Numbers and times exactly as they appear on the website
 
 LINKS:
-- Only include a link if the EXACT complete URL appears in the provided context
-- Never construct, guess, or modify URLs
-- If a relevant exact URL exists in the context, add it on a new line at the end: Mehr Informationen: https://...
-- If no exact matching URL exists, do not include any link`,
+- Only include a link if it appears in the VERIFIED LINKS section of the context
+- Never construct, guess, or modify URLs under any circumstances
+- If a relevant verified link exists, add it on a new line: Mehr Informationen: https://...
+- If no verified link exists for the topic, do not include any link`,
 
     messages: [
       {
@@ -74,20 +74,35 @@ LINKS:
   res.json({ reply });
 });
 
-// Helper: scrape a single page and return text + links
-async function scrapePage(url: string, origin: string, seenHrefs: Set<string>): Promise<{ text: string; links: string[] }> {
+// Validate that a URL actually exists and returns HTTP 200
+async function validateUrl(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: "HEAD",
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; WebsiteBot/1.0)" },
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Scrape a single page and return text + raw links
+async function scrapePage(url: string, origin: string, seenHrefs: Set<string>): Promise<{ text: string; rawLinks: Array<{ text: string; url: string }> }> {
   try {
     const fetchRes = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; WebsiteBot/1.0)" },
       signal: AbortSignal.timeout(8000),
     });
-    if (!fetchRes.ok) return { text: "", links: [] };
+    if (!fetchRes.ok) return { text: "", rawLinks: [] };
 
     const html = await fetchRes.text();
     const $ = cheerio.load(html);
     $("script, style, noscript, iframe, head, nav, footer").remove();
 
-    const links: string[] = [];
+    const rawLinks: Array<{ text: string; url: string }> = [];
+
     $("a").each((_: number, el: any) => {
       const href = $(el).attr("href");
       const text = $(el).text().trim();
@@ -106,13 +121,13 @@ async function scrapePage(url: string, origin: string, seenHrefs: Set<string>): 
       const cleanHref = fullUrl.split("?")[0].split("#")[0];
       if (seenHrefs.has(cleanHref)) return;
       seenHrefs.add(cleanHref);
-      links.push(`${text}: ${fullUrl}`);
+      rawLinks.push({ text, url: fullUrl });
     });
 
     const rawText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 5000);
-    return { text: rawText, links };
+    return { text: rawText, rawLinks };
   } catch {
-    return { text: "", links: [] };
+    return { text: "", rawLinks: [] };
   }
 }
 
@@ -141,40 +156,53 @@ app.get("/api/scrape", async (req, res) => {
     const seenHrefs = new Set<string>();
     seenHrefs.add(url.split("?")[0].split("#")[0]);
 
-    // Scrape main page first
+    // Scrape main page
     const mainPage = await scrapePage(url, parsedUrl.origin, seenHrefs);
 
-    // Find top subpages to scrape (max 5)
-    const subpageUrls = mainPage.links
-      .map(l => l.split(": ")[1])
+    // Get candidate subpage URLs from main page links
+    const candidateUrls = mainPage.rawLinks
+      .map(l => l.url)
       .filter(u => u && u.startsWith(parsedUrl.origin))
-      .slice(0, 5);
+      .slice(0, 8);
 
-    // Scrape subpages in parallel
-    const subpageResults = await Promise.all(
-      subpageUrls.map(u => scrapePage(u, parsedUrl.origin, seenHrefs))
+    // Validate links in parallel — only keep ones that return HTTP 200
+    const validationResults = await Promise.all(
+      candidateUrls.map(async u => ({
+        url: u,
+        valid: await validateUrl(u),
+      }))
     );
 
-    // Combine all text (main + subpages)
+    const validSubpageUrls = validationResults
+      .filter(r => r.valid)
+      .map(r => r.url)
+      .slice(0, 5);
+
+    // Scrape valid subpages in parallel
+    const subpageResults = await Promise.all(
+      validSubpageUrls.map(u => scrapePage(u, parsedUrl.origin, seenHrefs))
+    );
+
+    // Combine all text
     const allText = [mainPage.text, ...subpageResults.map(r => r.text)]
       .filter(Boolean)
       .join("\n\n")
       .slice(0, 20000);
 
-    // Combine all links
-    const allLinks = [
-      ...mainPage.links,
-      ...subpageResults.flatMap(r => r.links),
-    ].slice(0, 60);
+    // Only include validated links
+    const validatedLinks = mainPage.rawLinks
+      .filter(l => validationResults.find(r => r.url === l.url && r.valid))
+      .map(l => `${l.text}: ${l.url}`)
+      .slice(0, 40);
 
-    const linksText = allLinks.length > 0
-      ? "\n\nVerfügbare Seiten (nur diese exakten URLs dürfen verwendet werden):\n" + allLinks.join("\n")
+    const linksText = validatedLinks.length > 0
+      ? "\n\nVERIFIED LINKS (only these may be used):\n" + validatedLinks.join("\n")
       : "";
 
     res.json({
       url,
       text: allText + linksText,
-      links: allLinks,
+      links: validatedLinks,
       siteUrl: parsedUrl.origin,
     });
 
