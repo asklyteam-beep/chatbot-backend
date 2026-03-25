@@ -14,7 +14,7 @@ app.get("/api", (_req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
-  const { message, context } = req.body;
+  const { message, context, siteUrl } = req.body;
 
   if (!message || typeof message !== "string") {
     res.status(400).json({ error: "Field 'message' is required and must be a string." });
@@ -26,10 +26,41 @@ app.post("/api/chat", async (req, res) => {
     return;
   }
 
+  const websiteUrl = siteUrl || "";
+
   const response = await client.messages.create({
     model: "claude-opus-4-5",
     max_tokens: 1024,
-    system: "You are a helpful and precise website assistant. Your sole purpose is to answer visitor questions based exclusively on the provided website content. LANGUAGE: Always respond in German regardless of the question language. RESPONSE RULES: Answer immediately and directly — never repeat the question or use introductions like Based on the context or The website states. Keep answers concise: 1-3 sentences maximum. Always use a friendly professional tone. CONTENT RULES: Only use information from the provided website context. Never speculate guess or use external knowledge. If the answer is not in the context respond only with: Diese Information liegt mir leider nicht vor. Bitte wenden Sie sich direkt an die Kontaktangaben auf der Website. Never say what you do or dont know — just answer or refer to contact. FORMAT RULES: No bullet points unless listing 3+ items that truly need them. No bold text no headers no markdown. No filler phrases like Gerne Natürlich Selbstverständlich. Numbers and times exactly as they appear on the website. LINKS: If the website context contains relevant page links for the topic, always include the most relevant link at the end of your answer in this exact format: Mehr Informationen: https://...",
+    system: `You are a helpful and precise website assistant. Your sole purpose is to answer visitor questions based exclusively on the provided website content.
+
+LANGUAGE: Always respond in German regardless of the question language.
+
+RESPONSE RULES:
+- Answer immediately and directly
+- Never repeat the question
+- Never use introductions like "Basierend auf dem Kontext", "Die Website sagt", "Im vorliegenden Kontext" or similar
+- Keep answers concise: 1-3 sentences maximum
+- Always use a friendly professional tone
+- Never refer to yourself as a bot or mention the website context internally
+
+CONTENT RULES:
+- Only use information from the provided website content
+- Never speculate, guess, or use external knowledge
+- If the answer is not available, respond only with: "Diese Information liegt mir leider nicht vor. Weitere Auskünfte erhalten Sie direkt bei uns: ${websiteUrl}"
+- Never explain what you know or don't know — just answer or refer to contact
+
+FORMAT RULES:
+- No bullet points unless listing 3 or more items that truly require them
+- No bold text, no headers, no markdown formatting
+- No filler phrases like "Gerne", "Natürlich", "Selbstverständlich", "Sicher"
+- Numbers and times exactly as they appear on the website
+
+LINKS:
+- Only include a link if the EXACT complete URL appears in the provided context
+- Never construct, guess, or modify URLs
+- If including a link, always format it exactly like this on a new line: Mehr Informationen: https://...
+- If no exact URL is available in the context, do not include any link`,
+
     messages: [
       {
         role: "user",
@@ -66,6 +97,7 @@ app.get("/api/scrape", async (req, res) => {
   try {
     const fetchRes = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; WebsiteBot/1.0)" },
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!fetchRes.ok) {
@@ -77,13 +109,38 @@ app.get("/api/scrape", async (req, res) => {
     const $ = cheerio.load(html);
     $("script, style, noscript, iframe, head").remove();
 
+    // Extract only valid, unique, full URLs
+    const seenHrefs = new Set<string>();
     const links: string[] = [];
+
     $("a").each((_: number, el: any) => {
       const href = $(el).attr("href");
       const text = $(el).text().trim();
-      if (href && text && href.startsWith("/") && text.length > 2) {
-        links.push(`${text}: ${parsedUrl.origin}${href}`);
+
+      if (!href || !text || text.length < 3) return;
+
+      let fullUrl = "";
+
+      if (href.startsWith("http://") || href.startsWith("https://")) {
+        // Only include links from the same domain
+        try {
+          const linkUrl = new URL(href);
+          if (linkUrl.hostname === parsedUrl.hostname) {
+            fullUrl = href;
+          }
+        } catch { return; }
+      } else if (href.startsWith("/") && !href.startsWith("//")) {
+        fullUrl = `${parsedUrl.origin}${href}`;
+      } else {
+        return;
       }
+
+      // Remove query strings and fragments for deduplication
+      const cleanHref = fullUrl.split("?")[0].split("#")[0];
+      if (seenHrefs.has(cleanHref)) return;
+      seenHrefs.add(cleanHref);
+
+      links.push(`${text}: ${fullUrl}`);
     });
 
     const rawText = $("body").text();
@@ -92,7 +149,18 @@ app.get("/api/scrape", async (req, res) => {
       .trim()
       .slice(0, 15000);
 
-    res.json({ url, text: cleaned, links: links.slice(0, 50) });
+    // Include links in the text context so Claude can reference exact URLs
+    const linksText = links.length > 0
+      ? "\n\nVerfügbare Seiten (nur diese URLs dürfen verwendet werden):\n" + links.slice(0, 40).join("\n")
+      : "";
+
+    res.json({
+      url,
+      text: cleaned + linksText,
+      links: links.slice(0, 40),
+      siteUrl: parsedUrl.origin,
+    });
+
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(502).json({ error: `Could not reach URL: ${message}` });
