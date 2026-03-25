@@ -41,13 +41,14 @@ RESPONSE RULES:
 - Never use introductions like "Basierend auf dem Kontext", "Die Website sagt", "Im vorliegenden Kontext" or similar
 - Keep answers concise: 1-3 sentences maximum
 - Always use a friendly professional tone
-- Never refer to yourself as a bot or mention the website context internally
+- Never refer to yourself as a bot or mention internal context, knowledge base, or data sources
 
 CONTENT RULES:
 - Only use information from the provided website content
 - Never speculate, guess, or use external knowledge
-- If the answer is not available, respond only with: "Diese Information liegt mir leider nicht vor. Weitere Auskünfte erhalten Sie direkt bei uns: ${websiteUrl}"
-- Never explain what you know or don't know — just answer or refer to contact
+- If you can partially answer, do so — then stop. Never add a second paragraph saying the information is not available if you already answered
+- Only if you cannot answer at all, respond with exactly: "Dazu habe ich leider keine Information. Für weitere Auskünfte besuchen Sie bitte: ${websiteUrl}"
+- Never explain what you know or don't know
 
 FORMAT RULES:
 - No bullet points unless listing 3 or more items that truly require them
@@ -58,8 +59,8 @@ FORMAT RULES:
 LINKS:
 - Only include a link if the EXACT complete URL appears in the provided context
 - Never construct, guess, or modify URLs
-- If including a link, always format it exactly like this on a new line: Mehr Informationen: https://...
-- If no exact URL is available in the context, do not include any link`,
+- If a relevant exact URL exists in the context, add it on a new line at the end: Mehr Informationen: https://...
+- If no exact matching URL exists, do not include any link`,
 
     messages: [
       {
@@ -72,6 +73,48 @@ LINKS:
   const reply = response.content[0].type === "text" ? response.content[0].text : "";
   res.json({ reply });
 });
+
+// Helper: scrape a single page and return text + links
+async function scrapePage(url: string, origin: string, seenHrefs: Set<string>): Promise<{ text: string; links: string[] }> {
+  try {
+    const fetchRes = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; WebsiteBot/1.0)" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!fetchRes.ok) return { text: "", links: [] };
+
+    const html = await fetchRes.text();
+    const $ = cheerio.load(html);
+    $("script, style, noscript, iframe, head, nav, footer").remove();
+
+    const links: string[] = [];
+    $("a").each((_: number, el: any) => {
+      const href = $(el).attr("href");
+      const text = $(el).text().trim();
+      if (!href || !text || text.length < 3) return;
+
+      let fullUrl = "";
+      if (href.startsWith("http://") || href.startsWith("https://")) {
+        try {
+          const linkUrl = new URL(href);
+          if (linkUrl.hostname === new URL(origin).hostname) fullUrl = href;
+        } catch { return; }
+      } else if (href.startsWith("/") && !href.startsWith("//")) {
+        fullUrl = `${origin}${href}`;
+      } else return;
+
+      const cleanHref = fullUrl.split("?")[0].split("#")[0];
+      if (seenHrefs.has(cleanHref)) return;
+      seenHrefs.add(cleanHref);
+      links.push(`${text}: ${fullUrl}`);
+    });
+
+    const rawText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 5000);
+    return { text: rawText, links };
+  } catch {
+    return { text: "", links: [] };
+  }
+}
 
 app.get("/api/scrape", async (req, res) => {
   const url = req.query.url as string;
@@ -95,69 +138,43 @@ app.get("/api/scrape", async (req, res) => {
   }
 
   try {
-    const fetchRes = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; WebsiteBot/1.0)" },
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!fetchRes.ok) {
-      res.status(502).json({ error: `Failed to fetch URL: ${fetchRes.status} ${fetchRes.statusText}` });
-      return;
-    }
-
-    const html = await fetchRes.text();
-    const $ = cheerio.load(html);
-    $("script, style, noscript, iframe, head").remove();
-
-    // Extract only valid, unique, full URLs
     const seenHrefs = new Set<string>();
-    const links: string[] = [];
+    seenHrefs.add(url.split("?")[0].split("#")[0]);
 
-    $("a").each((_: number, el: any) => {
-      const href = $(el).attr("href");
-      const text = $(el).text().trim();
+    // Scrape main page first
+    const mainPage = await scrapePage(url, parsedUrl.origin, seenHrefs);
 
-      if (!href || !text || text.length < 3) return;
+    // Find top subpages to scrape (max 5)
+    const subpageUrls = mainPage.links
+      .map(l => l.split(": ")[1])
+      .filter(u => u && u.startsWith(parsedUrl.origin))
+      .slice(0, 5);
 
-      let fullUrl = "";
+    // Scrape subpages in parallel
+    const subpageResults = await Promise.all(
+      subpageUrls.map(u => scrapePage(u, parsedUrl.origin, seenHrefs))
+    );
 
-      if (href.startsWith("http://") || href.startsWith("https://")) {
-        // Only include links from the same domain
-        try {
-          const linkUrl = new URL(href);
-          if (linkUrl.hostname === parsedUrl.hostname) {
-            fullUrl = href;
-          }
-        } catch { return; }
-      } else if (href.startsWith("/") && !href.startsWith("//")) {
-        fullUrl = `${parsedUrl.origin}${href}`;
-      } else {
-        return;
-      }
+    // Combine all text (main + subpages)
+    const allText = [mainPage.text, ...subpageResults.map(r => r.text)]
+      .filter(Boolean)
+      .join("\n\n")
+      .slice(0, 20000);
 
-      // Remove query strings and fragments for deduplication
-      const cleanHref = fullUrl.split("?")[0].split("#")[0];
-      if (seenHrefs.has(cleanHref)) return;
-      seenHrefs.add(cleanHref);
+    // Combine all links
+    const allLinks = [
+      ...mainPage.links,
+      ...subpageResults.flatMap(r => r.links),
+    ].slice(0, 60);
 
-      links.push(`${text}: ${fullUrl}`);
-    });
-
-    const rawText = $("body").text();
-    const cleaned = rawText
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 15000);
-
-    // Include links in the text context so Claude can reference exact URLs
-    const linksText = links.length > 0
-      ? "\n\nVerfügbare Seiten (nur diese URLs dürfen verwendet werden):\n" + links.slice(0, 40).join("\n")
+    const linksText = allLinks.length > 0
+      ? "\n\nVerfügbare Seiten (nur diese exakten URLs dürfen verwendet werden):\n" + allLinks.join("\n")
       : "";
 
     res.json({
       url,
-      text: cleaned + linksText,
-      links: links.slice(0, 40),
+      text: allText + linksText,
+      links: allLinks,
       siteUrl: parsedUrl.origin,
     });
 
