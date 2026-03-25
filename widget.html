@@ -187,7 +187,7 @@
     input.value = '';
     btn.disabled = true;
     addMsg(text, 'user');
-    const loading = addMsg('...', 'bot');
+    const loading = addMsg('<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>', 'bot');
     try {
       const res = await fetch(`${BACKEND}/api/chat`, {
         method: 'POST',
