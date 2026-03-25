@@ -25,8 +25,6 @@ app.post("/api/chat", async (req, res) => {
     return;
   }
 
-  const websiteUrl = siteUrl || "";
-
   const response = await client.messages.create({
     model: "claude-opus-4-5",
     max_tokens: 1024,
@@ -46,7 +44,7 @@ CONTENT RULES:
 - Only use information from the provided website content
 - Never speculate, guess, or use external knowledge
 - If you can partially answer, give the answer — then stop. Never add a second paragraph saying the information is not available after already answering
-- Only if you cannot answer at all: "Dazu habe ich leider keine Information. Bitte kontaktieren Sie uns direkt: ${websiteUrl}"
+- Only if you cannot answer at all, respond with exactly: "Dazu habe ich leider keine Information. Bitte nutzen Sie die Kontaktangaben auf dieser Website."
 - Never explain what you know or don't know
 
 FORMAT RULES:
@@ -89,7 +87,6 @@ async function scrapePage(url: string): Promise<string> {
   }
 }
 
-// Build verified sitemap from actual navigation links on the page
 async function buildSitemap(url: string, origin: string): Promise<string[]> {
   try {
     const fetchRes = await fetch(url, {
@@ -150,13 +147,11 @@ app.get("/api/scrape", async (req, res) => {
   }
 
   try {
-    // Scrape main page text and build sitemap in parallel
     const [mainText, sitemap] = await Promise.all([
       scrapePage(url),
       buildSitemap(url, parsedUrl.origin),
     ]);
 
-    // Scrape up to 4 additional subpages for more content
     const subUrls = sitemap
       .map(l => l.split(": ").slice(1).join(": "))
       .filter(u => u && u.startsWith(parsedUrl.origin))
