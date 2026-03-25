@@ -13,7 +13,6 @@
     height: 56px;
     border-radius: 50%;
     background: #2D2FFF;
-    color: white;
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(45,47,255,0.35);
@@ -58,7 +57,15 @@
     align-items: center;
     gap: 10px;
   }
-  #askly-logo { width: 28px; height: 28px; flex-shrink: 0; }
+  #askly-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: contain;
+    background: white;
+    padding: 3px;
+    flex-shrink: 0;
+  }
   #chatbot-title { font-weight: 600; font-size: 15px; letter-spacing: 0.01em; }
   #chatbot-close {
     background: rgba(255,255,255,0.15);
@@ -125,7 +132,6 @@
     border: none;
     border-radius: 10px;
     padding: 9px 14px;
-    font-size: 16px;
     cursor: pointer;
     transition: background 0.2s, transform 0.1s;
     display: flex;
@@ -172,16 +178,7 @@
 <div id="chatbot-box">
   <div id="chatbot-header">
     <div id="chatbot-header-left">
-      <!-- Askly Blume Logo -->
-      <svg id="askly-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(0 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(60 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(120 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(180 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(240 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(300 50 50)"/>
-        <circle cx="50" cy="50" r="10" fill="white"/>
-      </svg>
+      <img id="askly-logo" src="https://asklyteam-beep.github.io/chatbot-backend/logo.png" alt="Askly" />
       <span id="chatbot-title">Assistent</span>
     </div>
     <button id="chatbot-close">✕</button>
