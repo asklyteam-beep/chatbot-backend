@@ -20,7 +20,6 @@ app.post("/api/chat", async (req, res) => {
     res.status(400).json({ error: "Field 'message' is required and must be a string." });
     return;
   }
-
   if (!context || typeof context !== "string") {
     res.status(400).json({ error: "Field 'context' is required and must be a string." });
     return;
@@ -46,8 +45,8 @@ RESPONSE RULES:
 CONTENT RULES:
 - Only use information from the provided website content
 - Never speculate, guess, or use external knowledge
-- If you can partially answer, do so — then stop. Never add a second paragraph saying the information is not available if you already answered
-- Only if you cannot answer at all, respond with exactly: "Dazu habe ich leider keine Information. Bitte kontaktieren Sie uns direkt: ${websiteUrl}"
+- If you can partially answer, give the answer — then stop. Never add a second paragraph saying the information is not available after already answering
+- Only if you cannot answer at all: "Dazu habe ich leider keine Information. Bitte kontaktieren Sie uns direkt: ${websiteUrl}"
 - Never explain what you know or don't know
 
 FORMAT RULES:
@@ -57,10 +56,10 @@ FORMAT RULES:
 - Numbers and times exactly as they appear on the website
 
 LINKS:
-- Only include a link if it appears in the VERIFIED LINKS section of the context
-- Never construct, guess, or modify URLs under any circumstances
+- Only include a link if it appears EXACTLY in the VERIFIED LINKS section of the context
+- Never construct, modify, or guess any URL — not even small changes
 - If a relevant verified link exists, add it on a new line: Mehr Informationen: https://...
-- If no verified link exists for the topic, do not include any link`,
+- If no exact verified link exists for the topic, do not include any link at all`,
 
     messages: [
       {
@@ -74,60 +73,58 @@ LINKS:
   res.json({ reply });
 });
 
-// Validate that a URL actually exists and returns HTTP 200
-async function validateUrl(url: string): Promise<boolean> {
-  try {
-    const res = await fetch(url, {
-      method: "HEAD",
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; WebsiteBot/1.0)" },
-      signal: AbortSignal.timeout(5000),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-// Scrape a single page and return text + raw links
-async function scrapePage(url: string, origin: string, seenHrefs: Set<string>): Promise<{ text: string; rawLinks: Array<{ text: string; url: string }> }> {
+async function scrapePage(url: string): Promise<string> {
   try {
     const fetchRes = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; WebsiteBot/1.0)" },
       signal: AbortSignal.timeout(8000),
     });
-    if (!fetchRes.ok) return { text: "", rawLinks: [] };
-
+    if (!fetchRes.ok) return "";
     const html = await fetchRes.text();
     const $ = cheerio.load(html);
     $("script, style, noscript, iframe, head, nav, footer").remove();
+    return $("body").text().replace(/\s+/g, " ").trim().slice(0, 4000);
+  } catch {
+    return "";
+  }
+}
 
-    const rawLinks: Array<{ text: string; url: string }> = [];
+// Build verified sitemap from actual navigation links on the page
+async function buildSitemap(url: string, origin: string): Promise<string[]> {
+  try {
+    const fetchRes = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; WebsiteBot/1.0)" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!fetchRes.ok) return [];
+    const html = await fetchRes.text();
+    const $ = cheerio.load(html);
 
-    $("a").each((_: number, el: any) => {
-      const href = $(el).attr("href");
+    const seen = new Set<string>();
+    const links: string[] = [];
+
+    $("a[href]").each((_: number, el: any) => {
+      const href = $(el).attr("href") || "";
       const text = $(el).text().trim();
-      if (!href || !text || text.length < 3) return;
+      if (!text || text.length < 2) return;
 
       let fullUrl = "";
       if (href.startsWith("http://") || href.startsWith("https://")) {
         try {
-          const linkUrl = new URL(href);
-          if (linkUrl.hostname === new URL(origin).hostname) fullUrl = href;
+          if (new URL(href).origin === origin) fullUrl = href.split("?")[0].split("#")[0];
         } catch { return; }
       } else if (href.startsWith("/") && !href.startsWith("//")) {
-        fullUrl = `${origin}${href}`;
+        fullUrl = `${origin}${href.split("?")[0].split("#")[0]}`;
       } else return;
 
-      const cleanHref = fullUrl.split("?")[0].split("#")[0];
-      if (seenHrefs.has(cleanHref)) return;
-      seenHrefs.add(cleanHref);
-      rawLinks.push({ text, url: fullUrl });
+      if (!fullUrl || seen.has(fullUrl) || fullUrl === origin || fullUrl === `${origin}/`) return;
+      seen.add(fullUrl);
+      links.push(`${text}: ${fullUrl}`);
     });
 
-    const rawText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 5000);
-    return { text: rawText, rawLinks };
+    return links.slice(0, 80);
   } catch {
-    return { text: "", rawLinks: [] };
+    return [];
   }
 }
 
@@ -153,56 +150,30 @@ app.get("/api/scrape", async (req, res) => {
   }
 
   try {
-    const seenHrefs = new Set<string>();
-    seenHrefs.add(url.split("?")[0].split("#")[0]);
+    // Scrape main page text and build sitemap in parallel
+    const [mainText, sitemap] = await Promise.all([
+      scrapePage(url),
+      buildSitemap(url, parsedUrl.origin),
+    ]);
 
-    // Scrape main page
-    const mainPage = await scrapePage(url, parsedUrl.origin, seenHrefs);
-
-    // Get candidate subpage URLs from main page links
-    const candidateUrls = mainPage.rawLinks
-      .map(l => l.url)
+    // Scrape up to 4 additional subpages for more content
+    const subUrls = sitemap
+      .map(l => l.split(": ").slice(1).join(": "))
       .filter(u => u && u.startsWith(parsedUrl.origin))
-      .slice(0, 8);
+      .slice(0, 4);
 
-    // Validate links in parallel — only keep ones that return HTTP 200
-    const validationResults = await Promise.all(
-      candidateUrls.map(async u => ({
-        url: u,
-        valid: await validateUrl(u),
-      }))
-    );
+    const subTexts = await Promise.all(subUrls.map(u => scrapePage(u)));
 
-    const validSubpageUrls = validationResults
-      .filter(r => r.valid)
-      .map(r => r.url)
-      .slice(0, 5);
+    const allText = [mainText, ...subTexts].filter(Boolean).join("\n\n").slice(0, 20000);
 
-    // Scrape valid subpages in parallel
-    const subpageResults = await Promise.all(
-      validSubpageUrls.map(u => scrapePage(u, parsedUrl.origin, seenHrefs))
-    );
-
-    // Combine all text
-    const allText = [mainPage.text, ...subpageResults.map(r => r.text)]
-      .filter(Boolean)
-      .join("\n\n")
-      .slice(0, 20000);
-
-    // Only include validated links
-    const validatedLinks = mainPage.rawLinks
-      .filter(l => validationResults.find(r => r.url === l.url && r.valid))
-      .map(l => `${l.text}: ${l.url}`)
-      .slice(0, 40);
-
-    const linksText = validatedLinks.length > 0
-      ? "\n\nVERIFIED LINKS (only these may be used):\n" + validatedLinks.join("\n")
+    const verifiedLinksText = sitemap.length > 0
+      ? "\n\nVERIFIED LINKS — only these exact URLs may be used in answers:\n" + sitemap.join("\n")
       : "";
 
     res.json({
       url,
-      text: allText + linksText,
-      links: validatedLinks,
+      text: allText + verifiedLinksText,
+      links: sitemap,
       siteUrl: parsedUrl.origin,
     });
 
