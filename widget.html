@@ -81,6 +81,11 @@
     align-self: flex-end;
     border-bottom-right-radius: 4px;
   }
+  .msg a {
+    color: #1a56db;
+    text-decoration: underline;
+    word-break: break-word;
+  }
   #chatbot-input-row {
     display: flex;
     gap: 8px;
@@ -151,12 +156,17 @@
   document.getElementById('welcome-msg').textContent = WELCOME_MSG;
 
   let context = '';
+  let siteLinks = [];
 
   async function loadContext() {
     try {
       const res = await fetch(`${BACKEND}/api/scrape?url=${encodeURIComponent(WEBSITE_URL)}`);
       const data = await res.json();
       context = data.text || '';
+      siteLinks = data.links || [];
+      if (siteLinks.length > 0) {
+        context += '\n\nVerfügbare Seiten auf dieser Website:\n' + siteLinks.join('\n');
+      }
     } catch(e) { context = ''; }
   }
 
@@ -176,7 +186,8 @@
       .replace(/\*(.*?)\*/g, '$1')
       .replace(/#{1,3} /g, '')
       .replace(/ - /g, '<br>• ')
-      .replace(/\n/g, '<br>');
+      .replace(/\n/g, '<br>')
+      .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
   }
 
   async function send() {
