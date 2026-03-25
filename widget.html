@@ -12,47 +12,77 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: #1a56db;
+    background: #2D2FFF;
     color: white;
     border: none;
-    font-size: 26px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 16px rgba(45,47,255,0.35);
     z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
   }
+  #chatbot-btn:hover {
+    transform: scale(1.07);
+    box-shadow: 0 6px 20px rgba(45,47,255,0.45);
+  }
+  #chatbot-btn svg { width: 26px; height: 26px; }
   #chatbot-box {
     position: fixed;
     bottom: 90px;
     right: 24px;
-    width: 340px;
-    height: 480px;
+    width: 350px;
+    height: 500px;
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    border-radius: 18px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.13);
     display: none;
     flex-direction: column;
     z-index: 9999;
     overflow: hidden;
-    font-family: sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   #chatbot-box.open { display: flex; }
   #chatbot-header {
-    background: #1a56db;
+    background: #2D2FFF;
     color: white;
     padding: 14px 16px;
-    font-weight: 600;
-    font-size: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
+  }
+  #chatbot-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #askly-logo {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+  #chatbot-title {
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.01em;
   }
   #chatbot-close {
-    background: none;
+    background: rgba(255,255,255,0.15);
     border: none;
     color: white;
-    font-size: 20px;
+    font-size: 16px;
     cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
   }
+  #chatbot-close:hover { background: rgba(255,255,255,0.25); }
   #chatbot-messages {
     flex: 1;
     overflow-y: auto;
@@ -60,7 +90,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: #f9fafb;
+    background: #f7f8fc;
   }
   .msg {
     max-width: 85%;
@@ -71,46 +101,67 @@
   }
   .msg.bot {
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e8eaf0;
     align-self: flex-start;
     border-bottom-left-radius: 4px;
+    color: #1a1a2e;
   }
   .msg.user {
-    background: #1a56db;
+    background: #2D2FFF;
     color: white;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
   }
   .msg a {
-    color: #1a56db;
+    color: #2D2FFF;
     text-decoration: underline;
     word-break: break-word;
+  }
+  #chatbot-footer {
+    background: white;
+    border-top: 1px solid #e8eaf0;
   }
   #chatbot-input-row {
     display: flex;
     gap: 8px;
     padding: 12px;
-    border-top: 1px solid #e5e7eb;
-    background: white;
   }
   #chatbot-input {
     flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    padding: 9px 13px;
+    border: 1.5px solid #e8eaf0;
+    border-radius: 10px;
     font-size: 14px;
     outline: none;
+    background: #f7f8fc;
+    transition: border 0.2s;
+    color: #1a1a2e;
   }
+  #chatbot-input:focus { border-color: #2D2FFF; background: white; }
   #chatbot-send {
-    background: #1a56db;
+    background: #2D2FFF;
     color: white;
     border: none;
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: 14px;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 16px;
     cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  #chatbot-send:disabled { opacity: 0.5; }
+  #chatbot-send:hover { background: #1a1ccc; }
+  #chatbot-send:active { transform: scale(0.95); }
+  #chatbot-send:disabled { opacity: 0.45; cursor: not-allowed; }
+  #chatbot-branding {
+    text-align: center;
+    padding: 4px 0 8px;
+    font-size: 11px;
+    color: #b0b3c6;
+    letter-spacing: 0.02em;
+  }
+  #chatbot-branding span { color: #2D2FFF; font-weight: 600; }
   @keyframes bounce {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
     30% { transform: translateY(-6px); opacity: 1; }
@@ -120,7 +171,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #93a3b8;
+    background: #b0b3c6;
     margin: 0 2px;
     animation: bounce 1.2s infinite ease-in-out;
   }
@@ -130,19 +181,47 @@
 </head>
 <body>
 
-<button id="chatbot-btn">💬</button>
+<!-- Chat Button -->
+<button id="chatbot-btn">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="white"/>
+  </svg>
+</button>
 
+<!-- Chat Box -->
 <div id="chatbot-box">
   <div id="chatbot-header">
-    <span id="chatbot-title">Assistent</span>
+    <div id="chatbot-header-left">
+      <!-- Askly Logo SVG -->
+      <svg id="askly-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="8" r="5" fill="white"/>
+        <circle cx="20" cy="32" r="5" fill="white"/>
+        <circle cx="8" cy="20" r="5" fill="white"/>
+        <circle cx="32" cy="20" r="5" fill="white"/>
+        <circle cx="11.5" cy="11.5" r="4" fill="white" opacity="0.7"/>
+        <circle cx="28.5" cy="28.5" r="4" fill="white" opacity="0.7"/>
+        <circle cx="28.5" cy="11.5" r="4" fill="white" opacity="0.7"/>
+        <circle cx="11.5" cy="28.5" r="4" fill="white" opacity="0.7"/>
+        <circle cx="20" cy="20" r="4" fill="white" opacity="0.5"/>
+      </svg>
+      <span id="chatbot-title">Assistent</span>
+    </div>
     <button id="chatbot-close">✕</button>
   </div>
   <div id="chatbot-messages">
     <div class="msg bot" id="welcome-msg">Hallo! Wie kann ich Ihnen helfen?</div>
   </div>
-  <div id="chatbot-input-row">
-    <input id="chatbot-input" type="text" placeholder="Ihre Frage..." />
-    <button id="chatbot-send">→</button>
+  <div id="chatbot-footer">
+    <div id="chatbot-input-row">
+      <input id="chatbot-input" type="text" placeholder="Ihre Frage..." />
+      <button id="chatbot-send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M22 2L11 13" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div id="chatbot-branding">Powered by <span>Askly</span></div>
   </div>
 </div>
 
