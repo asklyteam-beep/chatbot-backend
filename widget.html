@@ -64,24 +64,71 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    position: relative;
   }
 
-  /* Sprachumschalter */
-  #askly-lang-select {
+  /* Globus-Button */
+  #askly-lang-btn {
     background: rgba(255,255,255,0.15);
     border: none;
     color: white;
-    font-size: 11px;
-    font-weight: 700;
     cursor: pointer;
-    padding: 3px 6px;
-    border-radius: 6px;
-    outline: none;
-    letter-spacing: 0.03em;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: background 0.2s;
+    flex-shrink: 0;
   }
-  #askly-lang-select:hover { background: rgba(255,255,255,0.25); }
-  #askly-lang-select option { color: #1a1a2e; background: white; }
+  #askly-lang-btn:hover { background: rgba(255,255,255,0.28); }
+
+  /* Dropdown-Menü */
+  #askly-lang-dropdown {
+    display: none;
+    position: absolute;
+    top: 36px;
+    right: 36px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    overflow: hidden;
+    z-index: 10000;
+    min-width: 130px;
+  }
+  #askly-lang-dropdown.open { display: block; }
+  .lang-option {
+    padding: 9px 14px;
+    font-size: 13px;
+    color: #1a1a2e;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .lang-option:hover { background: #f0f1ff; }
+  .lang-option.active {
+    background: #f0f1ff;
+    color: #2D2FFF;
+    font-weight: 600;
+  }
+  .lang-option .lang-code {
+    font-weight: 700;
+    font-size: 11px;
+    color: #2D2FFF;
+    background: #e8eaff;
+    padding: 1px 5px;
+    border-radius: 4px;
+    min-width: 24px;
+    text-align: center;
+  }
+  .lang-option.active .lang-code {
+    background: #2D2FFF;
+    color: white;
+  }
 
   #chatbot-close {
     background: rgba(255,255,255,0.15);
@@ -221,15 +268,38 @@
       <span id="chatbot-title">Assistent</span>
     </div>
     <div id="chatbot-header-right">
-      <!-- Sprachumschalter -->
-      <select id="askly-lang-select" title="Sprache wählen">
-        <option value="AUTO">AUTO</option>
-        <option value="DE">DE</option>
-        <option value="FR">FR</option>
-        <option value="IT">IT</option>
-        <option value="EN">EN</option>
-        <option value="CH">CH 🇨🇭</option>
-      </select>
+
+      <!-- Globus-Button -->
+      <button id="askly-lang-btn" title="Sprache wählen">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </button>
+
+      <!-- Sprachauswahl Dropdown -->
+      <div id="askly-lang-dropdown">
+        <div class="lang-option active" data-lang="AUTO">
+          <span class="lang-code">AUTO</span> Automatisch
+        </div>
+        <div class="lang-option" data-lang="DE">
+          <span class="lang-code">DE</span> Deutsch
+        </div>
+        <div class="lang-option" data-lang="FR">
+          <span class="lang-code">FR</span> Français
+        </div>
+        <div class="lang-option" data-lang="IT">
+          <span class="lang-code">IT</span> Italiano
+        </div>
+        <div class="lang-option" data-lang="EN">
+          <span class="lang-code">EN</span> English
+        </div>
+        <div class="lang-option" data-lang="CH">
+          <span class="lang-code">CH</span> Schweizerdeutsch
+        </div>
+      </div>
+
       <button id="chatbot-close">✕</button>
     </div>
   </div>
@@ -269,8 +339,8 @@
 
   let context = '';
   let siteUrl = '';
+  let selectedLanguage = 'AUTO';
 
-  // Mikrofon-Sprachcodes je nach gewählter Sprache
   const MIC_LANG_CODES = {
     AUTO: 'de-CH',
     DE: 'de-CH',
@@ -329,9 +399,6 @@
     const btn = document.getElementById('chatbot-send');
     const text = input.value.trim();
     if (!text) return;
-
-    const language = document.getElementById('askly-lang-select').value;
-
     input.value = '';
     btn.disabled = true;
     addMsg(text, 'user');
@@ -340,7 +407,7 @@
       const res = await fetch(`${BACKEND}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, context, siteUrl, language })
+        body: JSON.stringify({ message: text, context, siteUrl, language: selectedLanguage })
       });
       const data = await res.json();
       loading.innerHTML = cleanReply(data.reply || 'Keine Antwort erhalten.');
@@ -349,6 +416,30 @@
     }
     btn.disabled = false;
   }
+
+  // ── Sprachumschalter ─────────────────────────────────────────────
+  const langBtn = document.getElementById('askly-lang-btn');
+  const langDropdown = document.getElementById('askly-lang-dropdown');
+
+  langBtn.onclick = (e) => {
+    e.stopPropagation();
+    langDropdown.classList.toggle('open');
+  };
+
+  document.querySelectorAll('.lang-option').forEach(option => {
+    option.addEventListener('click', () => {
+      selectedLanguage = option.dataset.lang;
+      document.querySelectorAll('.lang-option').forEach(o => o.classList.remove('active'));
+      option.classList.add('active');
+      langDropdown.classList.remove('open');
+    });
+  });
+
+  // Dropdown schliessen bei Klick ausserhalb
+  document.addEventListener('click', () => {
+    langDropdown.classList.remove('open');
+  });
+  // ────────────────────────────────────────────────────────────────
 
   document.getElementById('chatbot-btn').onclick = () => {
     document.getElementById('chatbot-box').classList.toggle('open');
@@ -376,9 +467,7 @@
       asklyRecognition.stop();
       return;
     }
-    const selectedLang = document.getElementById('askly-lang-select').value;
-    const micLang = MIC_LANG_CODES[selectedLang] || 'de-CH';
-
+    const micLang = MIC_LANG_CODES[selectedLanguage] || 'de-CH';
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     asklyRecognition = new SpeechRecognition();
     asklyRecognition.lang = micLang;
