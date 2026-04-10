@@ -14,7 +14,7 @@ app.get("/api", (_req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
-  const { message, context, siteUrl } = req.body;
+  const { message, context, siteUrl, language } = req.body;
 
   if (!message || typeof message !== "string") {
     res.status(400).json({ error: "Field 'message' is required and must be a string." });
@@ -25,12 +25,24 @@ app.post("/api/chat", async (req, res) => {
     return;
   }
 
+  const languageInstructions: Record<string, string> = {
+    DE: "Always respond in standard German (Hochdeutsch).",
+    FR: "Always respond in French.",
+    IT: "Always respond in Italian.",
+    EN: "Always respond in English.",
+    CH: "Always respond in Swiss German dialect (Schweizerdeutsch). Use typical Swiss German expressions and spelling.",
+    AUTO: "Detect the language of the user's question and respond in that same language. If the language is unclear, respond in German.",
+  };
+
+  const selectedLanguage = language && languageInstructions[language] ? language : "AUTO";
+  const languageRule = languageInstructions[selectedLanguage];
+
   const response = await client.messages.create({
     model: "claude-opus-4-5",
     max_tokens: 1024,
     system: `You are a helpful and precise website assistant. Your sole purpose is to answer visitor questions based exclusively on the provided website content.
 
-LANGUAGE: Always respond in German regardless of the question language.
+LANGUAGE: ${languageRule}
 
 RESPONSE RULES:
 - Answer immediately and directly
@@ -44,7 +56,7 @@ CONTENT RULES:
 - Only use information from the provided website content
 - Never speculate, guess, or use external knowledge
 - If you can partially answer, give the answer — then stop. Never add a second paragraph saying the information is not available after already answering
-- Only if you cannot answer at all, respond with exactly: "Dazu habe ich leider keine Information. Bitte nutzen Sie die Kontaktangaben auf dieser Website."
+- Only if you cannot answer at all, respond with the equivalent of "Dazu habe ich leider keine Information. Bitte nutzen Sie die Kontaktangaben auf dieser Website." translated into the response language
 - Never explain what you know or don't know
 
 FORMAT RULES:
@@ -89,7 +101,6 @@ async function scrapePage(url: string): Promise<string> {
   }
 }
 
-// Schlüsselwörter für wichtige Seiten — werden bevorzugt gescrapt
 const PRIORITY_KEYWORDS = [
   "kontakt", "contact",
   "oeffnungszeit", "öffnungszeit", "opening",
@@ -155,7 +166,6 @@ async function buildSitemap(url: string, origin: string): Promise<string[]> {
     });
 
     links.sort((a, b) => b.score - a.score);
-
     return links.slice(0, 80).map(l => `${l.label}: ${l.url}`);
   } catch {
     return [];
