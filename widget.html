@@ -59,7 +59,12 @@
     align-items: center;
     gap: 10px;
   }
-  #askly-logo { width: 28px; height: 28px; flex-shrink: 0; }
+  #askly-logo {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
   #chatbot-title { font-weight: 600; font-size: 15px; letter-spacing: 0.01em; }
   #chatbot-header-right {
     display: flex;
@@ -220,8 +225,6 @@
   }
   .dot:nth-child(2) { animation-delay: 0.2s; }
   .dot:nth-child(3) { animation-delay: 0.4s; }
-
-  /* Mobile: volle Höhe auf kleinen Screens */
   @media (max-height: 750px) {
     #chatbot-box { height: 85vh; bottom: 80px; }
   }
@@ -241,15 +244,12 @@
 <div id="chatbot-box">
   <div id="chatbot-header">
     <div id="chatbot-header-left">
-      <svg id="askly-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(0 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(60 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(120 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(180 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(240 50 50)"/>
-        <ellipse cx="50" cy="20" rx="12" ry="20" fill="white" transform="rotate(300 50 50)"/>
-        <circle cx="50" cy="50" r="10" fill="white"/>
-      </svg>
+      <!-- Echtes Askly Logo -->
+      <img
+        id="askly-logo"
+        src="https://asklyteam-beep.github.io/chatbot-backend/logo%20.png"
+        alt="Askly Logo"
+      />
       <span id="chatbot-title">Assistent</span>
     </div>
     <div id="chatbot-header-right">
@@ -427,7 +427,6 @@
     btn.disabled = false;
   }
 
-  // ── Sprachumschalter ─────────────────────────────────────────────
   const langBtn = document.getElementById('askly-lang-btn');
   const langDropdown = document.getElementById('askly-lang-dropdown');
 
@@ -451,7 +450,6 @@
   });
 
   document.addEventListener('click', () => langDropdown.classList.remove('open'));
-  // ────────────────────────────────────────────────────────────────
 
   document.getElementById('chatbot-btn').onclick = () => {
     document.getElementById('chatbot-box').classList.toggle('open');
@@ -466,7 +464,6 @@
     if (e.key === 'Enter') send();
   };
 
-  // ── Spracheingabe ────────────────────────────────────────────────
   let asklyRecognition = null;
   let asklyListening = false;
   const micBtn = document.getElementById('askly-mic-btn');
@@ -483,27 +480,17 @@
     asklyRecognition.lang = micLang;
     asklyRecognition.interimResults = false;
     asklyRecognition.maxAlternatives = 1;
-    asklyRecognition.onstart = () => {
-      asklyListening = true;
-      micBtn.classList.add('listening');
-    };
+    asklyRecognition.onstart = () => { asklyListening = true; micBtn.classList.add('listening'); };
     asklyRecognition.onresult = (event) => {
       document.getElementById('chatbot-input').value = event.results[0][0].transcript;
       send();
     };
-    asklyRecognition.onerror = () => {
-      asklyListening = false;
-      micBtn.classList.remove('listening');
-    };
-    asklyRecognition.onend = () => {
-      asklyListening = false;
-      micBtn.classList.remove('listening');
-    };
+    asklyRecognition.onerror = () => { asklyListening = false; micBtn.classList.remove('listening'); };
+    asklyRecognition.onend = () => { asklyListening = false; micBtn.classList.remove('listening'); };
     asklyRecognition.start();
   }
 
   micBtn.onclick = toggleMic;
-  // ────────────────────────────────────────────────────────────────
 </script>
 </body>
 </html>
