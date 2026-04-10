@@ -56,7 +56,9 @@ FORMAT RULES:
 LINKS:
 - Only include a link if it appears EXACTLY in the VERIFIED LINKS section of the context
 - Never construct, modify, or guess any URL — not even small changes
-- If a relevant verified link exists, add it on a new line: Mehr Informationen: https://...
+- Only add a link if the user would clearly benefit from visiting that page — for example to fill out a form, download a document, find contact details, or get more specific information than you could provide
+- Do NOT add a link if the answer is already complete and no further action on a webpage is needed
+- If a link is appropriate, add it on a new line: Mehr Informationen: https://...
 - If no exact verified link exists for the topic, do not include any link at all`,
 
     messages: [
@@ -110,7 +112,6 @@ function scoreLinkByPriority(linkText: string, linkUrl: string): number {
   for (const keyword of PRIORITY_KEYWORDS) {
     if (combined.includes(keyword)) score++;
   }
-  // Kürzere URLs bevorzugen (Hauptseiten statt Unterunterseiten)
   const depth = (linkUrl.match(/\//g) || []).length;
   score -= depth * 0.1;
   return score;
@@ -153,7 +154,6 @@ async function buildSitemap(url: string, origin: string): Promise<string[]> {
       });
     });
 
-    // Nach Priorität sortieren
     links.sort((a, b) => b.score - a.score);
 
     return links.slice(0, 80).map(l => `${l.label}: ${l.url}`);
@@ -189,7 +189,6 @@ app.get("/api/scrape", async (req, res) => {
       buildSitemap(url, parsedUrl.origin),
     ]);
 
-    // Top 10 Unterseiten nach Priorität scrapen (statt 4 zufällige)
     const subUrls = sitemap
       .map(l => l.split(": ").slice(1).join(": "))
       .filter(u => u && u.startsWith(parsedUrl.origin))
