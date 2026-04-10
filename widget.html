@@ -52,6 +52,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
   }
   #chatbot-header-left {
     display: flex;
@@ -64,7 +65,6 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    position: relative;
   }
 
   /* Globus-Button */
@@ -84,22 +84,20 @@
   }
   #askly-lang-btn:hover { background: rgba(255,255,255,0.28); }
 
-  /* Dropdown-Menü */
+  /* Dropdown — fixed ans body, nicht im header */
   #askly-lang-dropdown {
     display: none;
-    position: absolute;
-    top: 36px;
-    right: 36px;
+    position: fixed;
     background: white;
     border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    z-index: 99999;
+    min-width: 170px;
     overflow: hidden;
-    z-index: 10000;
-    min-width: 130px;
   }
   #askly-lang-dropdown.open { display: block; }
   .lang-option {
-    padding: 9px 14px;
+    padding: 10px 14px;
     font-size: 13px;
     color: #1a1a2e;
     cursor: pointer;
@@ -120,9 +118,9 @@
     font-size: 11px;
     color: #2D2FFF;
     background: #e8eaff;
-    padding: 1px 5px;
+    padding: 1px 6px;
     border-radius: 4px;
-    min-width: 24px;
+    min-width: 28px;
     text-align: center;
   }
   .lang-option.active .lang-code {
@@ -175,7 +173,7 @@
     border-bottom-right-radius: 4px;
   }
   .msg a { color: #2D2FFF; text-decoration: underline; word-break: break-word; }
-  #chatbot-footer { background: white; border-top: 1px solid #e8eaf0; }
+  #chatbot-footer { background: white; border-top: 1px solid #e8eaf0; flex-shrink: 0; }
   #chatbot-input-row {
     display: flex;
     gap: 8px;
@@ -268,8 +266,6 @@
       <span id="chatbot-title">Assistent</span>
     </div>
     <div id="chatbot-header-right">
-
-      <!-- Globus-Button -->
       <button id="askly-lang-btn" title="Sprache wählen">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
@@ -277,29 +273,6 @@
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
         </svg>
       </button>
-
-      <!-- Sprachauswahl Dropdown -->
-      <div id="askly-lang-dropdown">
-        <div class="lang-option active" data-lang="AUTO">
-          <span class="lang-code">AUTO</span> Automatisch
-        </div>
-        <div class="lang-option" data-lang="DE">
-          <span class="lang-code">DE</span> Deutsch
-        </div>
-        <div class="lang-option" data-lang="FR">
-          <span class="lang-code">FR</span> Français
-        </div>
-        <div class="lang-option" data-lang="IT">
-          <span class="lang-code">IT</span> Italiano
-        </div>
-        <div class="lang-option" data-lang="EN">
-          <span class="lang-code">EN</span> English
-        </div>
-        <div class="lang-option" data-lang="CH">
-          <span class="lang-code">CH</span> Schweizerdeutsch
-        </div>
-      </div>
-
       <button id="chatbot-close">✕</button>
     </div>
   </div>
@@ -325,6 +298,28 @@
       </button>
     </div>
     <div id="chatbot-branding">Powered by <a href="https://askly.ch" target="_blank">Askly</a></div>
+  </div>
+</div>
+
+<!-- Dropdown AUSSERHALB chatbot-box, direkt im body -->
+<div id="askly-lang-dropdown">
+  <div class="lang-option active" data-lang="AUTO">
+    <span class="lang-code">AUTO</span> Automatisch
+  </div>
+  <div class="lang-option" data-lang="DE">
+    <span class="lang-code">DE</span> Deutsch
+  </div>
+  <div class="lang-option" data-lang="FR">
+    <span class="lang-code">FR</span> Français
+  </div>
+  <div class="lang-option" data-lang="IT">
+    <span class="lang-code">IT</span> Italiano
+  </div>
+  <div class="lang-option" data-lang="EN">
+    <span class="lang-code">EN</span> English
+  </div>
+  <div class="lang-option" data-lang="CH">
+    <span class="lang-code">CH</span> Schweizerdeutsch
   </div>
 </div>
 
@@ -421,13 +416,18 @@
   const langBtn = document.getElementById('askly-lang-btn');
   const langDropdown = document.getElementById('askly-lang-dropdown');
 
-  langBtn.onclick = (e) => {
+  langBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    const rect = langBtn.getBoundingClientRect();
+    // Dropdown direkt unter dem Globus-Button positionieren
+    langDropdown.style.top = (rect.bottom + 8) + 'px';
+    langDropdown.style.right = (window.innerWidth - rect.right) + 'px';
     langDropdown.classList.toggle('open');
-  };
+  });
 
   document.querySelectorAll('.lang-option').forEach(option => {
-    option.addEventListener('click', () => {
+    option.addEventListener('click', (e) => {
+      e.stopPropagation();
       selectedLanguage = option.dataset.lang;
       document.querySelectorAll('.lang-option').forEach(o => o.classList.remove('active'));
       option.classList.add('active');
@@ -435,7 +435,6 @@
     });
   });
 
-  // Dropdown schliessen bei Klick ausserhalb
   document.addEventListener('click', () => {
     langDropdown.classList.remove('open');
   });
@@ -447,6 +446,7 @@
   };
   document.getElementById('chatbot-close').onclick = () => {
     document.getElementById('chatbot-box').classList.remove('open');
+    langDropdown.classList.remove('open');
   };
   document.getElementById('chatbot-send').onclick = send;
   document.getElementById('chatbot-input').onkeydown = e => {
