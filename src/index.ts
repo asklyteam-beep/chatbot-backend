@@ -87,6 +87,35 @@ async function scrapePage(url: string): Promise<string> {
   }
 }
 
+// Schlüsselwörter für wichtige Seiten — werden bevorzugt gescrapt
+const PRIORITY_KEYWORDS = [
+  "kontakt", "contact",
+  "oeffnungszeit", "öffnungszeit", "opening",
+  "verwaltung", "administration",
+  "bau", "bauen", "baubewilligung",
+  "steuer", "steuern", "tax",
+  "hund", "hundsteuer", "hundesteuer",
+  "abfall", "entsorgung", "recycling",
+  "gemeinde", "buerger", "bürger",
+  "schalter", "dienstleistung",
+  "anmeldung", "ummeldung", "abmeldung",
+  "pass", "ausweis", "dokument",
+  "schule", "bildung",
+  "sozial", "gesundheit",
+];
+
+function scoreLinkByPriority(linkText: string, linkUrl: string): number {
+  const combined = (linkText + " " + linkUrl).toLowerCase();
+  let score = 0;
+  for (const keyword of PRIORITY_KEYWORDS) {
+    if (combined.includes(keyword)) score++;
+  }
+  // Kürzere URLs bevorzugen (Hauptseiten statt Unterunterseiten)
+  const depth = (linkUrl.match(/\//g) || []).length;
+  score -= depth * 0.1;
+  return score;
+}
+
 async function buildSitemap(url: string, origin: string): Promise<string[]> {
   try {
     const fetchRes = await fetch(url, {
@@ -98,7 +127,7 @@ async function buildSitemap(url: string, origin: string): Promise<string[]> {
     const $ = cheerio.load(html);
 
     const seen = new Set<string>();
-    const links: string[] = [];
+    const links: { label: string; url: string; score: number }[] = [];
 
     $("a[href]").each((_: number, el: any) => {
       const href = $(el).attr("href") || "";
@@ -116,10 +145,18 @@ async function buildSitemap(url: string, origin: string): Promise<string[]> {
 
       if (!fullUrl || seen.has(fullUrl) || fullUrl === origin || fullUrl === `${origin}/`) return;
       seen.add(fullUrl);
-      links.push(`${text}: ${fullUrl}`);
+
+      links.push({
+        label: text,
+        url: fullUrl,
+        score: scoreLinkByPriority(text, fullUrl),
+      });
     });
 
-    return links.slice(0, 80);
+    // Nach Priorität sortieren
+    links.sort((a, b) => b.score - a.score);
+
+    return links.slice(0, 80).map(l => `${l.label}: ${l.url}`);
   } catch {
     return [];
   }
@@ -152,10 +189,11 @@ app.get("/api/scrape", async (req, res) => {
       buildSitemap(url, parsedUrl.origin),
     ]);
 
+    // Top 10 Unterseiten nach Priorität scrapen (statt 4 zufällige)
     const subUrls = sitemap
       .map(l => l.split(": ").slice(1).join(": "))
       .filter(u => u && u.startsWith(parsedUrl.origin))
-      .slice(0, 4);
+      .slice(0, 10);
 
     const subTexts = await Promise.all(subUrls.map(u => scrapePage(u)));
 
