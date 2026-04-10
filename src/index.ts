@@ -33,7 +33,7 @@ app.post("/api/chat", async (req, res) => {
     CH: "Always respond in Swiss German dialect (Schweizerdeutsch). Use typical Swiss German expressions and spelling.",
     AUTO: `Detect the language of the user's question carefully and respond in that exact same language.
 - If the question is in French → respond in French
-- If the question is in Italian → respond in Italian  
+- If the question is in Italian → respond in Italian
 - If the question is in English → respond in English
 - If the question is in Swiss German dialect → respond in Swiss German dialect
 - If the question is in German → respond in German
@@ -78,7 +78,12 @@ LINKS:
 - Never construct, modify, or guess any URL — not even small changes
 - Only add a link if the user would clearly benefit from visiting that page — for example to fill out a form, download a document, find contact details, or get more specific information than you could provide
 - Do NOT add a link if the answer is already complete and no further action on a webpage is needed
-- If a link is appropriate, add it on a new line: Mehr Informationen: https://...
+- If a link is appropriate, add it on a new line using the correct prefix for the response language:
+  German: "Mehr Informationen: https://..."
+  French: "Plus d'informations: https://..."
+  Italian: "Ulteriori informazioni: https://..."
+  English: "More information: https://..."
+  Swiss German: "Meh Informatione: https://..."
 - If no exact verified link exists for the topic, do not include any link at all`,
 
     messages: [
@@ -103,7 +108,6 @@ async function scrapePage(url: string): Promise<string> {
     const html = await fetchRes.text();
     const $ = cheerio.load(html);
 
-    // Scripts etc. entfernen, aber footer + kontaktbereich behalten
     $("script, style, noscript, iframe, head, nav").remove();
 
     // Kontaktdaten explizit extrahieren und vorne anhängen
@@ -111,17 +115,15 @@ async function scrapePage(url: string): Promise<string> {
     $("*").each((_: number, el: any) => {
       const text = $(el).text().trim();
       if (
-        /\b\d{3}\s?\d{3}\s?\d{2}\s?\d{2}\b/.test(text) || // Telefon
-        /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(text) || // E-Mail
-        /\b\d{4}\s[A-Z][a-zA-Z]+\b/.test(text) // PLZ + Ort
+        /\b\d{3}\s?\d{3}\s?\d{2}\s?\d{2}\b/.test(text) ||
+        /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(text) ||
+        /\b\d{4}\s[A-Z][a-zA-Z]+\b/.test(text)
       ) {
         if (text.length < 200) contactInfo.push(text);
       }
     });
 
     const bodyText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 3500);
-
-    // Kontaktinfos vorne anhängen damit sie im Kontext priorität haben
     const uniqueContact = [...new Set(contactInfo)].join(" | ");
     const combined = uniqueContact
       ? `KONTAKTDATEN: ${uniqueContact}\n\n${bodyText}`
