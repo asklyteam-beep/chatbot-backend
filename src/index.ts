@@ -31,7 +31,14 @@ app.post("/api/chat", async (req, res) => {
     IT: "Always respond in Italian.",
     EN: "Always respond in English.",
     CH: "Always respond in Swiss German dialect (Schweizerdeutsch). Use typical Swiss German expressions and spelling.",
-    AUTO: "Detect the language of the user's question and respond in that same language. If the language is unclear, respond in German.",
+    AUTO: `Detect the language of the user's question carefully and respond in that exact same language.
+- If the question is in French → respond in French
+- If the question is in Italian → respond in Italian  
+- If the question is in English → respond in English
+- If the question is in Swiss German dialect → respond in Swiss German dialect
+- If the question is in German → respond in German
+- If unclear → respond in German
+Never mix languages in your response.`,
   };
 
   const selectedLanguage = language && languageInstructions[language] ? language : "AUTO";
@@ -58,6 +65,7 @@ CONTENT RULES:
 - If you can partially answer, give the answer — then stop. Never add a second paragraph saying the information is not available after already answering
 - Only if you cannot answer at all, respond with the equivalent of "Dazu habe ich leider keine Information. Bitte nutzen Sie die Kontaktangaben auf dieser Website." translated into the response language
 - Never explain what you know or don't know
+- Contact information such as address, phone number and email are always available in the website content — always use them when asked
 
 FORMAT RULES:
 - No bullet points unless listing 3 or more items that truly require them
@@ -94,9 +102,32 @@ async function scrapePage(url: string): Promise<string> {
     if (!fetchRes.ok) return "";
     const html = await fetchRes.text();
     const $ = cheerio.load(html);
-    // footer behalten — enthält oft Kontaktdaten, Adresse, Telefon
+
+    // Scripts etc. entfernen, aber footer + kontaktbereich behalten
     $("script, style, noscript, iframe, head, nav").remove();
-    return $("body").text().replace(/\s+/g, " ").trim().slice(0, 4000);
+
+    // Kontaktdaten explizit extrahieren und vorne anhängen
+    const contactInfo: string[] = [];
+    $("*").each((_: number, el: any) => {
+      const text = $(el).text().trim();
+      if (
+        /\b\d{3}\s?\d{3}\s?\d{2}\s?\d{2}\b/.test(text) || // Telefon
+        /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(text) || // E-Mail
+        /\b\d{4}\s[A-Z][a-zA-Z]+\b/.test(text) // PLZ + Ort
+      ) {
+        if (text.length < 200) contactInfo.push(text);
+      }
+    });
+
+    const bodyText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 3500);
+
+    // Kontaktinfos vorne anhängen damit sie im Kontext priorität haben
+    const uniqueContact = [...new Set(contactInfo)].join(" | ");
+    const combined = uniqueContact
+      ? `KONTAKTDATEN: ${uniqueContact}\n\n${bodyText}`
+      : bodyText;
+
+    return combined.slice(0, 4000);
   } catch {
     return "";
   }
