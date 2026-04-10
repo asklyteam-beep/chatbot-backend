@@ -60,6 +60,29 @@
   }
   #askly-logo { width: 28px; height: 28px; flex-shrink: 0; }
   #chatbot-title { font-weight: 600; font-size: 15px; letter-spacing: 0.01em; }
+  #chatbot-header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Sprachumschalter */
+  #askly-lang-select {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 6px;
+    outline: none;
+    letter-spacing: 0.03em;
+    transition: background 0.2s;
+  }
+  #askly-lang-select:hover { background: rgba(255,255,255,0.25); }
+  #askly-lang-select option { color: #1a1a2e; background: white; }
+
   #chatbot-close {
     background: rgba(255,255,255,0.15);
     border: none;
@@ -197,7 +220,18 @@
       </svg>
       <span id="chatbot-title">Assistent</span>
     </div>
-    <button id="chatbot-close">✕</button>
+    <div id="chatbot-header-right">
+      <!-- Sprachumschalter -->
+      <select id="askly-lang-select" title="Sprache wählen">
+        <option value="AUTO">AUTO</option>
+        <option value="DE">DE</option>
+        <option value="FR">FR</option>
+        <option value="IT">IT</option>
+        <option value="EN">EN</option>
+        <option value="CH">CH 🇨🇭</option>
+      </select>
+      <button id="chatbot-close">✕</button>
+    </div>
   </div>
   <div id="chatbot-messages">
     <div class="msg bot" id="welcome-msg">Hallo! Wie kann ich Ihnen helfen?</div>
@@ -235,6 +269,16 @@
 
   let context = '';
   let siteUrl = '';
+
+  // Mikrofon-Sprachcodes je nach gewählter Sprache
+  const MIC_LANG_CODES = {
+    AUTO: 'de-CH',
+    DE: 'de-CH',
+    FR: 'fr-CH',
+    IT: 'it-CH',
+    EN: 'en-GB',
+    CH: 'de-CH',
+  };
 
   async function loadContext() {
     try {
@@ -285,6 +329,9 @@
     const btn = document.getElementById('chatbot-send');
     const text = input.value.trim();
     if (!text) return;
+
+    const language = document.getElementById('askly-lang-select').value;
+
     input.value = '';
     btn.disabled = true;
     addMsg(text, 'user');
@@ -293,7 +340,7 @@
       const res = await fetch(`${BACKEND}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, context, siteUrl })
+        body: JSON.stringify({ message: text, context, siteUrl, language })
       });
       const data = await res.json();
       loading.innerHTML = cleanReply(data.reply || 'Keine Antwort erhalten.');
@@ -315,7 +362,7 @@
     if (e.key === 'Enter') send();
   };
 
-  // ── Spracheingabe (nur Deutsch) ──────────────────────────────────
+  // ── Spracheingabe ────────────────────────────────────────────────
   let asklyRecognition = null;
   let asklyListening = false;
   const micBtn = document.getElementById('askly-mic-btn');
@@ -329,9 +376,12 @@
       asklyRecognition.stop();
       return;
     }
+    const selectedLang = document.getElementById('askly-lang-select').value;
+    const micLang = MIC_LANG_CODES[selectedLang] || 'de-CH';
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     asklyRecognition = new SpeechRecognition();
-    asklyRecognition.lang = 'de-CH';
+    asklyRecognition.lang = micLang;
     asklyRecognition.interimResults = false;
     asklyRecognition.maxAlternatives = 1;
 
