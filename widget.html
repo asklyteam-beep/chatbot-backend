@@ -32,8 +32,8 @@
     position: fixed;
     bottom: 90px;
     right: 24px;
-    width: 350px;
-    height: 500px;
+    width: 420px;
+    height: 620px;
     background: white;
     border-radius: 18px;
     box-shadow: 0 8px 40px rgba(0,0,0,0.13);
@@ -134,15 +134,15 @@
   #chatbot-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     background: #f7f8fc;
   }
   .msg {
-    max-width: 85%;
-    padding: 10px 14px;
+    max-width: 82%;
+    padding: 11px 15px;
     border-radius: 16px;
     font-size: 14px;
     line-height: 1.6;
@@ -165,7 +165,7 @@
   #chatbot-input-row { display: flex; gap: 8px; padding: 12px; align-items: center; }
   #chatbot-input {
     flex: 1;
-    padding: 9px 13px;
+    padding: 10px 14px;
     border: 1.5px solid #e8eaf0;
     border-radius: 10px;
     font-size: 14px;
@@ -220,6 +220,14 @@
   }
   .dot:nth-child(2) { animation-delay: 0.2s; }
   .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Mobile: volle Höhe auf kleinen Screens */
+  @media (max-height: 750px) {
+    #chatbot-box { height: 85vh; bottom: 80px; }
+  }
+  @media (max-width: 460px) {
+    #chatbot-box { width: calc(100vw - 24px); right: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -261,7 +269,7 @@
   <div id="chatbot-footer">
     <div id="chatbot-input-row">
       <input id="chatbot-input" type="text" />
-      <button id="askly-mic-btn" title="Spracheingabe">
+      <button id="askly-mic-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="9" y="2" width="6" height="12" rx="3"/>
           <path d="M5 10a7 7 0 0 0 14 0"/>
@@ -269,7 +277,7 @@
           <line x1="9" y1="22" x2="15" y2="22"/>
         </svg>
       </button>
-      <button id="chatbot-send" title="Nachricht senden">
+      <button id="chatbot-send">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
           <path d="M22 2L11 13" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
           <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -280,26 +288,13 @@
   </div>
 </div>
 
-<!-- Dropdown ausserhalb chatbot-box -->
 <div id="askly-lang-dropdown">
-  <div class="lang-option active" data-lang="AUTO">
-    <span class="lang-code">AUTO</span> Automatisch
-  </div>
-  <div class="lang-option" data-lang="DE">
-    <span class="lang-code">DE</span> Deutsch
-  </div>
-  <div class="lang-option" data-lang="FR">
-    <span class="lang-code">FR</span> Français
-  </div>
-  <div class="lang-option" data-lang="IT">
-    <span class="lang-code">IT</span> Italiano
-  </div>
-  <div class="lang-option" data-lang="EN">
-    <span class="lang-code">EN</span> English
-  </div>
-  <div class="lang-option" data-lang="CH">
-    <span class="lang-code">CH</span> Schweizerdeutsch
-  </div>
+  <div class="lang-option active" data-lang="AUTO"><span class="lang-code">AUTO</span> Automatisch</div>
+  <div class="lang-option" data-lang="DE"><span class="lang-code">DE</span> Deutsch</div>
+  <div class="lang-option" data-lang="FR"><span class="lang-code">FR</span> Français</div>
+  <div class="lang-option" data-lang="IT"><span class="lang-code">IT</span> Italiano</div>
+  <div class="lang-option" data-lang="EN"><span class="lang-code">EN</span> English</div>
+  <div class="lang-option" data-lang="CH"><span class="lang-code">CH</span> Schweizerdeutsch</div>
 </div>
 
 <script>
@@ -307,7 +302,6 @@
   const WEBSITE_URL = 'https://www.meggen.ch';
   const BOT_NAME = 'Gemeinde Meggen Assistent';
 
-  // ── UI-Übersetzungen ─────────────────────────────────────────────
   const UI_STRINGS = {
     AUTO: {
       welcome: 'Hallo! Ich beantworte gerne Ihre Fragen zur Gemeinde Meggen.',
@@ -346,7 +340,6 @@
       noAnswer: 'Kei Antwort erhalte.',
     },
   };
-  // ────────────────────────────────────────────────────────────────
 
   let context = '';
   let siteUrl = '';
@@ -453,7 +446,6 @@
       document.querySelectorAll('.lang-option').forEach(o => o.classList.remove('active'));
       option.classList.add('active');
       langDropdown.classList.remove('open');
-      // UI sofort auf neue Sprache umstellen
       applyLanguage(selectedLanguage);
     });
   });
