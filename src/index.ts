@@ -94,7 +94,8 @@ async function scrapePage(url: string): Promise<string> {
     if (!fetchRes.ok) return "";
     const html = await fetchRes.text();
     const $ = cheerio.load(html);
-    $("script, style, noscript, iframe, head, nav, footer").remove();
+    // footer behalten — enthält oft Kontaktdaten, Adresse, Telefon
+    $("script, style, noscript, iframe, head, nav").remove();
     return $("body").text().replace(/\s+/g, " ").trim().slice(0, 4000);
   } catch {
     return "";
