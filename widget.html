@@ -66,8 +66,6 @@
     align-items: center;
     gap: 6px;
   }
-
-  /* Globus-Button */
   #askly-lang-btn {
     background: rgba(255,255,255,0.15);
     border: none;
@@ -83,8 +81,6 @@
     flex-shrink: 0;
   }
   #askly-lang-btn:hover { background: rgba(255,255,255,0.28); }
-
-  /* Dropdown — fixed ans body, nicht im header */
   #askly-lang-dropdown {
     display: none;
     position: fixed;
@@ -108,11 +104,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   .lang-option:hover { background: #f0f1ff; }
-  .lang-option.active {
-    background: #f0f1ff;
-    color: #2D2FFF;
-    font-weight: 600;
-  }
+  .lang-option.active { background: #f0f1ff; color: #2D2FFF; font-weight: 600; }
   .lang-option .lang-code {
     font-weight: 700;
     font-size: 11px;
@@ -123,11 +115,7 @@
     min-width: 28px;
     text-align: center;
   }
-  .lang-option.active .lang-code {
-    background: #2D2FFF;
-    color: white;
-  }
-
+  .lang-option.active .lang-code { background: #2D2FFF; color: white; }
   #chatbot-close {
     background: rgba(255,255,255,0.15);
     border: none;
@@ -174,12 +162,7 @@
   }
   .msg a { color: #2D2FFF; text-decoration: underline; word-break: break-word; }
   #chatbot-footer { background: white; border-top: 1px solid #e8eaf0; flex-shrink: 0; }
-  #chatbot-input-row {
-    display: flex;
-    gap: 8px;
-    padding: 12px;
-    align-items: center;
-  }
+  #chatbot-input-row { display: flex; gap: 8px; padding: 12px; align-items: center; }
   #chatbot-input {
     flex: 1;
     padding: 9px 13px;
@@ -209,10 +192,7 @@
   #chatbot-send:hover, #askly-mic-btn:hover { background: #1a1ccc; }
   #chatbot-send:active, #askly-mic-btn:active { transform: scale(0.95); }
   #chatbot-send:disabled { opacity: 0.45; cursor: not-allowed; }
-  #askly-mic-btn.listening {
-    background: #e53935;
-    animation: micPulse 1s infinite;
-  }
+  #askly-mic-btn.listening { background: #e53935; animation: micPulse 1s infinite; }
   @keyframes micPulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0.45); }
     50% { box-shadow: 0 0 0 6px rgba(229,57,53,0); }
@@ -232,8 +212,7 @@
   }
   .dot {
     display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     border-radius: 50%;
     background: #b0b3c6;
     margin: 0 2px;
@@ -277,11 +256,11 @@
     </div>
   </div>
   <div id="chatbot-messages">
-    <div class="msg bot" id="welcome-msg">Hallo! Wie kann ich Ihnen helfen?</div>
+    <div class="msg bot" id="welcome-msg"></div>
   </div>
   <div id="chatbot-footer">
     <div id="chatbot-input-row">
-      <input id="chatbot-input" type="text" placeholder="Ihre Frage..." />
+      <input id="chatbot-input" type="text" />
       <button id="askly-mic-btn" title="Spracheingabe">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="9" y="2" width="6" height="12" rx="3"/>
@@ -301,7 +280,7 @@
   </div>
 </div>
 
-<!-- Dropdown AUSSERHALB chatbot-box, direkt im body -->
+<!-- Dropdown ausserhalb chatbot-box -->
 <div id="askly-lang-dropdown">
   <div class="lang-option active" data-lang="AUTO">
     <span class="lang-code">AUTO</span> Automatisch
@@ -327,23 +306,65 @@
   const BACKEND = 'https://sweet-determination-production.up.railway.app';
   const WEBSITE_URL = 'https://www.meggen.ch';
   const BOT_NAME = 'Gemeinde Meggen Assistent';
-  const WELCOME_MSG = 'Hallo! Ich beantworte gerne Ihre Fragen zur Gemeinde Meggen.';
 
-  document.getElementById('chatbot-title').textContent = BOT_NAME;
-  document.getElementById('welcome-msg').textContent = WELCOME_MSG;
+  // ── UI-Übersetzungen ─────────────────────────────────────────────
+  const UI_STRINGS = {
+    AUTO: {
+      welcome: 'Hallo! Ich beantworte gerne Ihre Fragen zur Gemeinde Meggen.',
+      placeholder: 'Ihre Frage...',
+      error: 'Verbindungsfehler. Bitte erneut versuchen.',
+      noAnswer: 'Keine Antwort erhalten.',
+    },
+    DE: {
+      welcome: 'Hallo! Ich beantworte gerne Ihre Fragen zur Gemeinde Meggen.',
+      placeholder: 'Ihre Frage...',
+      error: 'Verbindungsfehler. Bitte erneut versuchen.',
+      noAnswer: 'Keine Antwort erhalten.',
+    },
+    FR: {
+      welcome: 'Bonjour! Je réponds volontiers à vos questions sur la commune de Meggen.',
+      placeholder: 'Votre question...',
+      error: 'Erreur de connexion. Veuillez réessayer.',
+      noAnswer: 'Aucune réponse reçue.',
+    },
+    IT: {
+      welcome: 'Salve! Sono felice di rispondere alle sue domande sul comune di Meggen.',
+      placeholder: 'La sua domanda...',
+      error: 'Errore di connessione. Riprovare.',
+      noAnswer: 'Nessuna risposta ricevuta.',
+    },
+    EN: {
+      welcome: 'Hello! I am happy to answer your questions about the municipality of Meggen.',
+      placeholder: 'Your question...',
+      error: 'Connection error. Please try again.',
+      noAnswer: 'No answer received.',
+    },
+    CH: {
+      welcome: 'Hoi! I beantworte gern Iri Frage zur Gmeinde Meggen.',
+      placeholder: 'Iri Frag...',
+      error: 'Verbindigsfehler. Bitte nomol versuche.',
+      noAnswer: 'Kei Antwort erhalte.',
+    },
+  };
+  // ────────────────────────────────────────────────────────────────
 
   let context = '';
   let siteUrl = '';
   let selectedLanguage = 'AUTO';
 
   const MIC_LANG_CODES = {
-    AUTO: 'de-CH',
-    DE: 'de-CH',
-    FR: 'fr-CH',
-    IT: 'it-CH',
-    EN: 'en-GB',
-    CH: 'de-CH',
+    AUTO: 'de-CH', DE: 'de-CH', FR: 'fr-CH',
+    IT: 'it-CH', EN: 'en-GB', CH: 'de-CH',
   };
+
+  function applyLanguage(lang) {
+    const strings = UI_STRINGS[lang] || UI_STRINGS['DE'];
+    document.getElementById('welcome-msg').textContent = strings.welcome;
+    document.getElementById('chatbot-input').placeholder = strings.placeholder;
+  }
+
+  document.getElementById('chatbot-title').textContent = BOT_NAME;
+  applyLanguage('AUTO');
 
   async function loadContext() {
     try {
@@ -375,13 +396,13 @@
       .replace(/\n/g, '<br>')
       .replace(/(https?:\/\/[^\s<"]+)/g, (url) => {
         try {
-          const { hostname, pathname } = new URL(url);
+          const { pathname } = new URL(url);
           const segments = pathname.split('/').filter(Boolean);
           const label = segments.length > 0
             ? decodeURIComponent(segments[segments.length - 1])
                 .replace(/-/g, ' ')
                 .replace(/\b\w/g, c => c.toUpperCase())
-            : hostname;
+            : url;
           return `<a href="${url}" target="_blank" rel="noopener">${label}</a>`;
         } catch {
           return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
@@ -394,6 +415,7 @@
     const btn = document.getElementById('chatbot-send');
     const text = input.value.trim();
     if (!text) return;
+    const strings = UI_STRINGS[selectedLanguage] || UI_STRINGS['DE'];
     input.value = '';
     btn.disabled = true;
     addMsg(text, 'user');
@@ -405,9 +427,9 @@
         body: JSON.stringify({ message: text, context, siteUrl, language: selectedLanguage })
       });
       const data = await res.json();
-      loading.innerHTML = cleanReply(data.reply || 'Keine Antwort erhalten.');
+      loading.innerHTML = cleanReply(data.reply || strings.noAnswer);
     } catch(e) {
-      loading.innerHTML = 'Verbindungsfehler. Bitte erneut versuchen.';
+      loading.innerHTML = strings.error;
     }
     btn.disabled = false;
   }
@@ -419,7 +441,6 @@
   langBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const rect = langBtn.getBoundingClientRect();
-    // Dropdown direkt unter dem Globus-Button positionieren
     langDropdown.style.top = (rect.bottom + 8) + 'px';
     langDropdown.style.right = (window.innerWidth - rect.right) + 'px';
     langDropdown.classList.toggle('open');
@@ -432,12 +453,12 @@
       document.querySelectorAll('.lang-option').forEach(o => o.classList.remove('active'));
       option.classList.add('active');
       langDropdown.classList.remove('open');
+      // UI sofort auf neue Sprache umstellen
+      applyLanguage(selectedLanguage);
     });
   });
 
-  document.addEventListener('click', () => {
-    langDropdown.classList.remove('open');
-  });
+  document.addEventListener('click', () => langDropdown.classList.remove('open'));
   // ────────────────────────────────────────────────────────────────
 
   document.getElementById('chatbot-btn').onclick = () => {
@@ -463,36 +484,28 @@
       alert('Spracheingabe wird nur in Chrome/Edge unterstützt.');
       return;
     }
-    if (asklyListening) {
-      asklyRecognition.stop();
-      return;
-    }
+    if (asklyListening) { asklyRecognition.stop(); return; }
     const micLang = MIC_LANG_CODES[selectedLanguage] || 'de-CH';
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     asklyRecognition = new SpeechRecognition();
     asklyRecognition.lang = micLang;
     asklyRecognition.interimResults = false;
     asklyRecognition.maxAlternatives = 1;
-
     asklyRecognition.onstart = () => {
       asklyListening = true;
       micBtn.classList.add('listening');
-      micBtn.title = 'Aufnahme läuft – klicken zum Stoppen';
     };
     asklyRecognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      document.getElementById('chatbot-input').value = transcript;
+      document.getElementById('chatbot-input').value = event.results[0][0].transcript;
       send();
     };
-    asklyRecognition.onerror = (event) => {
-      console.warn('Mic Fehler:', event.error);
+    asklyRecognition.onerror = () => {
       asklyListening = false;
       micBtn.classList.remove('listening');
     };
     asklyRecognition.onend = () => {
       asklyListening = false;
       micBtn.classList.remove('listening');
-      micBtn.title = 'Spracheingabe';
     };
     asklyRecognition.start();
   }
