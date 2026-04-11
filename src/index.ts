@@ -1,36 +1,122 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import Anthropic from "@anthropic-ai/sdk";
 import * as cheerio from "cheerio";
 
 const app = express();
 
+// ── Sicherheit: Rate Limiting ─────────────────────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 Minute
+const RATE_LIMIT_MAX_CHAT = 30;       // max 30 Chat-Anfragen pro Minute pro IP
+const RATE_LIMIT_MAX_SCRAPE = 5;      // max 5 Scrape-Anfragen pro Minute pro IP
+
+function rateLimit(maxRequests: number) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const key = `${ip}:${req.path}`;
+    const now = Date.now();
+    const entry = rateLimitMap.get(key);
+
+    if (!entry || now > entry.resetAt) {
+      rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+      next();
+      return;
+    }
+
+    if (entry.count >= maxRequests) {
+      res.status(429).json({ error: "Too many requests. Please try again later." });
+      return;
+    }
+
+    entry.count++;
+    next();
+  };
+}
+
+// Rate-Limit-Map periodisch bereinigen
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap.entries()) {
+    if (now > entry.resetAt) rateLimitMap.delete(key);
+  }
+}, 5 * 60 * 1000);
+
+// ── CORS ──────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = [
+  'https://asklyteam-beep.github.io',
+  'https://www.meggen.ch',
+  'https://meggen.ch',
+  'http://localhost:3000',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+];
+
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (
-      !origin ||
-      origin.includes('github.io') ||
-      origin.includes('meggen.ch') ||
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1')
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    if (!origin) { callback(null, true); return; } // Server-zu-Server
+    if (ALLOWED_ORIGINS.includes(origin)) { callback(null, true); return; }
+    callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type'],
   credentials: true,
 };
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-app.use(express.json());
+
+// ── Body-Parser mit Limit ─────────────────────────────────────────
+app.use(express.json({ limit: '10kb' })); // Max 10KB Body
+
+// ── Security Headers ──────────────────────────────────────────────
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.removeHeader('X-Powered-By');
+  next();
+});
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// ── Server-seitiger Cache (24h) ───────────────────────────────────
+// ── Input-Validierung ─────────────────────────────────────────────
+const MAX_MESSAGE_LENGTH = 500;
+const MAX_CONTEXT_LENGTH = 25000;
+const ALLOWED_LANGUAGES = new Set(['DE', 'FR', 'IT', 'EN', 'CH', 'AUTO']);
+const ALLOWED_PROTOCOLS = new Set(['http:', 'https:']);
+
+function sanitizeString(str: unknown, maxLength: number): string {
+  if (typeof str !== 'string') return '';
+  return str.slice(0, maxLength).trim();
+}
+
+function isValidUrl(urlString: string): { valid: boolean; parsed?: URL } {
+  try {
+    const parsed = new URL(urlString);
+    if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) return { valid: false };
+    // Localhost und private IPs blockieren (SSRF-Schutz)
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('172.16.') ||
+      hostname.endsWith('.internal') ||
+      hostname === 'metadata.google.internal'
+    ) {
+      return { valid: false };
+    }
+    return { valid: true, parsed };
+  } catch {
+    return { valid: false };
+  }
+}
+
+// ── Cache ─────────────────────────────────────────────────────────
 interface CacheEntry {
   text: string;
   links: string[];
@@ -38,15 +124,12 @@ interface CacheEntry {
   timestamp: number;
 }
 const scrapeCache = new Map<string, CacheEntry>();
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 Stunden
+const CACHE_TTL = 24 * 60 * 60 * 1000;
 
 function getCached(url: string): CacheEntry | null {
   const entry = scrapeCache.get(url);
   if (!entry) return null;
-  if (Date.now() - entry.timestamp > CACHE_TTL) {
-    scrapeCache.delete(url);
-    return null;
-  }
+  if (Date.now() - entry.timestamp > CACHE_TTL) { scrapeCache.delete(url); return null; }
   return entry;
 }
 
@@ -64,19 +147,21 @@ TELEFON: 041 379 81 11
 EMAIL: info@meggen.ch
 `;
 
-app.get("/api", (_req, res) => {
+app.get("/api", (_req: Request, res: Response) => {
   res.send("<h1>Chatbot Backend läuft ✓</h1>");
 });
 
-app.post("/api/chat", async (req, res) => {
-  const { message, context, siteUrl, language } = req.body;
+// ── Chat Endpoint ─────────────────────────────────────────────────
+app.post("/api/chat", rateLimit(RATE_LIMIT_MAX_CHAT), async (req: Request, res: Response): Promise<void> => {
+  const message = sanitizeString(req.body.message, MAX_MESSAGE_LENGTH);
+  const context = sanitizeString(req.body.context, MAX_CONTEXT_LENGTH);
+  const rawLanguage = sanitizeString(req.body.language, 10).toUpperCase();
+  const language = ALLOWED_LANGUAGES.has(rawLanguage) ? rawLanguage : 'AUTO';
 
-  if (!message || typeof message !== "string") {
-    res.status(400).json({ error: "Field 'message' is required and must be a string." });
+  if (!message) {
+    res.status(400).json({ error: "Field 'message' is required and must be a non-empty string." });
     return;
   }
-
-  const safeContext = (typeof context === "string") ? context : "";
 
   const languageInstructions: Record<string, string> = {
     DE: "Always respond in standard German (Hochdeutsch).",
@@ -94,13 +179,13 @@ app.post("/api/chat", async (req, res) => {
 Never mix languages.`,
   };
 
-  const selectedLanguage = language && languageInstructions[language] ? language : "AUTO";
-  const languageRule = languageInstructions[selectedLanguage];
+  const languageRule = languageInstructions[language];
 
-  const response = await client.messages.create({
-    model: "claude-opus-4-5",
-    max_tokens: 1024,
-    system: `You are a precise and friendly website assistant for the municipality of Meggen (Gemeinde Meggen), Switzerland. You answer visitor questions exclusively based on the provided website content and guaranteed information.
+  try {
+    const response = await client.messages.create({
+      model: "claude-opus-4-5",
+      max_tokens: 1024,
+      system: `You are a precise and friendly website assistant for the municipality of Meggen (Gemeinde Meggen), Switzerland. You answer visitor questions exclusively based on the provided website content and guaranteed information.
 
 LANGUAGE: ${languageRule}
 
@@ -158,28 +243,46 @@ LINKS:
   CH: "Meh Informatione: https://..."
 - If no exact verified link exists: omit entirely`,
 
-    messages: [
-      {
-        role: "user",
-        content: `Website-Kontext:\n${FIXED_INFO}\n\n${safeContext}\n\nFrage: ${message}`,
-      },
-    ],
-  });
+      messages: [
+        {
+          role: "user",
+          content: `Website-Kontext:\n${FIXED_INFO}\n\n${context}\n\nFrage: ${message}`,
+        },
+      ],
+    });
 
-  const reply = response.content[0].type === "text" ? response.content[0].text : "";
-  res.json({ reply });
+    const reply = response.content[0].type === "text" ? response.content[0].text : "";
+    res.json({ reply });
+  } catch (err: unknown) {
+    console.error("Anthropic API error:", err);
+    res.status(502).json({ error: "AI service temporarily unavailable." });
+  }
 });
 
+// ── Scraper ───────────────────────────────────────────────────────
 async function scrapePage(url: string): Promise<string> {
+  const { valid } = isValidUrl(url);
+  if (!valid) return "";
+
   try {
     const fetchRes = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; AsklyBot/1.0)" },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; AsklyBot/1.0)",
+        "Accept": "text/html",
+        "Accept-Language": "de,en;q=0.9",
+      },
       signal: AbortSignal.timeout(8000),
     });
     if (!fetchRes.ok) return "";
-    const html = await fetchRes.text();
-    const $ = cheerio.load(html);
 
+    // Nur HTML verarbeiten
+    const contentType = fetchRes.headers.get('content-type') || '';
+    if (!contentType.includes('text/html')) return "";
+
+    const html = await fetchRes.text();
+    if (html.length > 5_000_000) return ""; // Max 5MB HTML
+
+    const $ = cheerio.load(html);
     $("script, style, noscript, iframe, head, nav").remove();
 
     const contactInfo: string[] = [];
@@ -196,10 +299,7 @@ async function scrapePage(url: string): Promise<string> {
 
     const bodyText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 3500);
     const uniqueContact = [...new Set(contactInfo)].join(" | ");
-    const combined = uniqueContact
-      ? `KONTAKTDATEN: ${uniqueContact}\n\n${bodyText}`
-      : bodyText;
-
+    const combined = uniqueContact ? `KONTAKTDATEN: ${uniqueContact}\n\n${bodyText}` : bodyText;
     return combined.slice(0, 4000);
   } catch {
     return "";
@@ -227,22 +327,25 @@ function scoreLinkByPriority(linkText: string, linkUrl: string): number {
 }
 
 async function buildSitemap(url: string, origin: string): Promise<string[]> {
+  const { valid } = isValidUrl(url);
+  if (!valid) return [];
+
   try {
     const fetchRes = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; AsklyBot/1.0)" },
       signal: AbortSignal.timeout(10000),
     });
     if (!fetchRes.ok) return [];
+
     const html = await fetchRes.text();
     const $ = cheerio.load(html);
-
     const seen = new Set<string>();
     const links: { label: string; url: string; score: number }[] = [];
 
     $("a[href]").each((_: number, el: any) => {
       const href = $(el).attr("href") || "";
       const text = $(el).text().trim();
-      if (!text || text.length < 2) return;
+      if (!text || text.length < 2 || text.length > 200) return;
 
       let fullUrl = "";
       if (href.startsWith("http://") || href.startsWith("https://")) {
@@ -254,8 +357,10 @@ async function buildSitemap(url: string, origin: string): Promise<string[]> {
       } else return;
 
       if (!fullUrl || seen.has(fullUrl) || fullUrl === origin || fullUrl === `${origin}/`) return;
-      seen.add(fullUrl);
+      const { valid: linkValid } = isValidUrl(fullUrl);
+      if (!linkValid) return;
 
+      seen.add(fullUrl);
       links.push({ label: text, url: fullUrl, score: scoreLinkByPriority(text, fullUrl) });
     });
 
@@ -274,7 +379,11 @@ async function buildFullContext(url: string, parsedUrl: URL): Promise<{ text: st
 
   const subUrls = sitemap
     .map(l => l.split(": ").slice(1).join(": "))
-    .filter(u => u && u.startsWith(parsedUrl.origin))
+    .filter(u => {
+      if (!u || !u.startsWith(parsedUrl.origin)) return false;
+      const { valid } = isValidUrl(u);
+      return valid;
+    })
     .slice(0, 10);
 
   const subTexts = await Promise.all(subUrls.map(u => scrapePage(u)));
@@ -284,73 +393,78 @@ async function buildFullContext(url: string, parsedUrl: URL): Promise<{ text: st
     ? "\n\nVERIFIED LINKS — only these exact URLs may be used in answers:\n" + sitemap.join("\n")
     : "";
 
-  return {
-    text: allText + verifiedLinksText,
-    links: sitemap,
-    siteUrl: parsedUrl.origin,
-  };
+  return { text: allText + verifiedLinksText, links: sitemap, siteUrl: parsedUrl.origin };
 }
 
-app.get("/api/scrape", async (req, res) => {
-  const url = req.query.url as string;
+// ── Scrape Endpoint ───────────────────────────────────────────────
+app.get("/api/scrape", rateLimit(RATE_LIMIT_MAX_SCRAPE), async (req: Request, res: Response): Promise<void> => {
+  const rawUrl = sanitizeString(req.query.url, 2000);
 
-  if (!url || typeof url !== "string") {
+  if (!rawUrl) {
     res.status(400).json({ error: "Query parameter 'url' is required." });
     return;
   }
 
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(url);
-  } catch {
-    res.status(400).json({ error: "Invalid URL provided." });
+  const { valid, parsed: parsedUrl } = isValidUrl(rawUrl);
+  if (!valid || !parsedUrl) {
+    res.status(400).json({ error: "Invalid or disallowed URL provided." });
     return;
   }
 
-  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-    res.status(400).json({ error: "Only http and https URLs are allowed." });
-    return;
-  }
-
-  // Cache prüfen
-  const cached = getCached(url);
+  const cached = getCached(rawUrl);
   if (cached) {
-    console.log(`[Cache HIT] ${url}`);
-    res.json({ url, ...cached, cached: true });
+    console.log(`[Cache HIT] ${rawUrl}`);
+    res.json({ url: rawUrl, ...cached, cached: true });
     return;
   }
 
   try {
-    console.log(`[Cache MISS] Scraping ${url}...`);
-    const result = await buildFullContext(url, parsedUrl);
-
-    // In Cache speichern
-    scrapeCache.set(url, {
-      ...result,
-      timestamp: Date.now(),
-    });
-
-    res.json({ url, ...result, cached: false });
+    console.log(`[Cache MISS] Scraping ${rawUrl}...`);
+    const result = await buildFullContext(rawUrl, parsedUrl);
+    scrapeCache.set(rawUrl, { ...result, timestamp: Date.now() });
+    res.json({ url: rawUrl, ...result, cached: false });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(502).json({ error: `Could not reach URL: ${message}` });
+    console.error("Scrape error:", err);
+    res.status(502).json({ error: "Could not reach the provided URL." });
   }
 });
 
-// Cache manuell leeren (für Debugging)
-app.get("/api/cache/clear", (_req, res) => {
+// ── Cache Management (nur intern nutzbar) ─────────────────────────
+const CACHE_ADMIN_KEY = process.env.CACHE_ADMIN_KEY || '';
+
+app.get("/api/cache/clear", (req: Request, res: Response): void => {
+  const key = req.query.key as string;
+  if (!CACHE_ADMIN_KEY || key !== CACHE_ADMIN_KEY) {
+    res.status(401).json({ error: "Unauthorized." });
+    return;
+  }
   scrapeCache.clear();
   res.json({ message: "Cache cleared." });
 });
 
-// Cache Status anzeigen
-app.get("/api/cache/status", (_req, res) => {
+app.get("/api/cache/status", (req: Request, res: Response): void => {
+  const key = req.query.key as string;
+  if (!CACHE_ADMIN_KEY || key !== CACHE_ADMIN_KEY) {
+    res.status(401).json({ error: "Unauthorized." });
+    return;
+  }
   const entries = Array.from(scrapeCache.entries()).map(([url, entry]) => ({
     url,
     cachedAt: new Date(entry.timestamp).toISOString(),
     expiresIn: Math.round((CACHE_TTL - (Date.now() - entry.timestamp)) / 60000) + " min",
   }));
   res.json({ count: entries.length, entries });
+});
+
+// ── 404 Handler ───────────────────────────────────────────────────
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({ error: "Not found." });
+});
+
+// ── Error Handler ─────────────────────────────────────────────────
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("Unhandled error:", err.message);
+  res.status(500).json({ error: "Internal server error." });
 });
 
 const port = Number(process.env.PORT) || 3000;
