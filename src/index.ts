@@ -5,16 +5,28 @@ import * as cheerio from "cheerio";
 
 const app = express();
 
-app.use(cors({
-  origin: [
-    'https://asklyteam-beep.github.io',
-    'https://www.meggen.ch',
-    'http://localhost:3000',
-    'http://127.0.0.1:5500',
-    'http://localhost:5500',
-  ],
-  methods: ['GET', 'POST'],
-}));
+// CORS — flexibel für alle erlaubten Origins
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (
+      !origin ||
+      origin.includes('github.io') ||
+      origin.includes('meggen.ch') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1')
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Preflight für alle Routen
 
 app.use(express.json());
 
@@ -32,7 +44,6 @@ app.post("/api/chat", async (req, res) => {
     return;
   }
 
-  // Context ist optional — leerer string wird akzeptiert
   const safeContext = (typeof context === "string") ? context : "";
 
   const languageInstructions: Record<string, string> = {
