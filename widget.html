@@ -168,8 +168,6 @@
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.2); }
   }
-
-  /* ── Voice Recorder ──────────────────────────────────────────────── */
   #voice-recorder {
     display: none;
     position: absolute;
@@ -208,18 +206,8 @@
     height: 4px;
     transition: height 0.08s ease;
   }
-  #voice-timer {
-    font-size: 13px;
-    font-weight: 600;
-    color: #000000;
-    min-width: 36px;
-    text-align: right;
-  }
-  #voice-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
+  #voice-timer { font-size: 13px; font-weight: 600; color: #000000; min-width: 36px; text-align: right; }
+  #voice-actions { display: flex; align-items: center; justify-content: space-between; }
   #voice-cancel {
     background: none;
     border: 1.5px solid #e0e0e0;
@@ -235,16 +223,7 @@
   #voice-cancel:hover { border-color: #e53935; background: #fff0f0; }
   #voice-cancel svg { width: 16px; height: 16px; stroke: #666; stroke-width: 2; stroke-linecap: round; fill: none; }
   #voice-cancel:hover svg { stroke: #e53935; }
-  #voice-status {
-    font-size: 12px;
-    color: #b0b3c6;
-    text-align: center;
-    flex: 1;
-    padding: 0 8px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  #voice-status { font-size: 12px; color: #b0b3c6; text-align: center; flex: 1; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #voice-confirm {
     background: #1B17FF;
     border: none;
@@ -260,7 +239,6 @@
   #voice-confirm:hover { background: #0e0acc; }
   #voice-confirm:active { transform: scale(0.95); }
   #voice-confirm svg { width: 18px; height: 18px; stroke: white; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-
   #chatbot-footer { background: #FFFFFF; border-top: 1px solid #e8eaf0; flex-shrink: 0; position: relative; }
   #chatbot-input-row { display: flex; gap: 8px; padding: 12px; align-items: center; }
   #chatbot-input {
@@ -365,16 +343,11 @@
       </div>
       <div id="voice-actions">
         <button id="voice-cancel" title="Abbrechen">
-          <svg viewBox="0 0 24 24">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
         <span id="voice-status">Aufnahme läuft...</span>
         <button id="voice-confirm" title="Senden">
-          <svg viewBox="0 0 24 24">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </button>
       </div>
     </div>
@@ -413,6 +386,7 @@
   const BACKEND = 'https://sweet-determination-production.up.railway.app';
   const WEBSITE_URL = 'https://www.meggen.ch';
   const BOT_NAME = 'Gemeinde Meggen Assistent';
+  const CLIENT_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 Stunden Client-Cache
 
   const UI_STRINGS = {
     AUTO: { welcome: 'Hallo! Ich beantworte gerne Ihre Fragen zur Gemeinde Meggen.', placeholder: 'Ihre Frage...', error: 'Verbindungsfehler. Bitte erneut versuchen.', noAnswer: 'Keine Antwort erhalten.' },
@@ -431,6 +405,30 @@
   let selectedLanguage = 'AUTO';
   let currentSpeech = null;
   let currentSpeakBtn = null;
+
+  // ── Client-seitiger Cache ─────────────────────────────────────────
+  let clientCache = null;
+  let clientCacheTime = 0;
+
+  async function loadContext() {
+    // Cache prüfen
+    if (clientCache && (Date.now() - clientCacheTime) < CLIENT_CACHE_TTL) {
+      context = clientCache.text || '';
+      siteUrl = clientCache.siteUrl || WEBSITE_URL;
+      return;
+    }
+    try {
+      const res = await fetch(`${BACKEND}/api/scrape?url=${encodeURIComponent(WEBSITE_URL)}`);
+      const data = await res.json();
+      context = data.text || '';
+      siteUrl = data.siteUrl || WEBSITE_URL;
+      clientCache = data;
+      clientCacheTime = Date.now();
+    } catch(e) {
+      context = '';
+      siteUrl = WEBSITE_URL;
+    }
+  }
 
   // ── Voice Recorder ────────────────────────────────────────────────
   let asklyRecognition = null;
@@ -459,10 +457,7 @@
   function startVoiceTimer() {
     voiceSeconds = 0;
     voiceTimer.textContent = '0:00';
-    voiceTimerInterval = setInterval(() => {
-      voiceSeconds++;
-      voiceTimer.textContent = formatTime(voiceSeconds);
-    }, 1000);
+    voiceTimerInterval = setInterval(() => { voiceSeconds++; voiceTimer.textContent = formatTime(voiceSeconds); }, 1000);
   }
 
   function stopVoiceTimer() {
@@ -478,7 +473,6 @@
     const source = audioContext.createMediaStreamSource(stream);
     source.connect(analyser);
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
     function draw() {
       animationFrame = requestAnimationFrame(draw);
       analyser.getByteFrequencyData(dataArray);
@@ -527,52 +521,33 @@
     try {
       micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       startWaveformAnalysis(micStream);
-    } catch(e) {
-      console.warn('Mikrofon-Zugriff fehlgeschlagen:', e);
-    }
+    } catch(e) { console.warn('Mikrofon-Zugriff fehlgeschlagen:', e); }
 
-    const micLang = MIC_LANG_CODES[selectedLanguage] || 'de-CH';
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     asklyRecognition = new SpeechRecognition();
-    asklyRecognition.lang = micLang;
+    asklyRecognition.lang = MIC_LANG_CODES[selectedLanguage] || 'de-CH';
     asklyRecognition.interimResults = true;
     asklyRecognition.continuous = true;
     asklyRecognition.maxAlternatives = 1;
 
-    asklyRecognition.onstart = () => {
-      asklyListening = true;
-      showRecorder();
-    };
-
+    asklyRecognition.onstart = () => { asklyListening = true; showRecorder(); };
     asklyRecognition.onresult = (event) => {
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          voiceTranscript += event.results[i][0].transcript + ' ';
-        } else {
-          interim += event.results[i][0].transcript;
-        }
+        if (event.results[i].isFinal) { voiceTranscript += event.results[i][0].transcript + ' '; }
+        else { interim += event.results[i][0].transcript; }
       }
       voiceStatus.textContent = (voiceTranscript + interim).trim() || 'Aufnahme läuft...';
     };
-
-    asklyRecognition.onerror = () => {
-      asklyListening = false;
-      hideRecorder();
-    };
-
+    asklyRecognition.onerror = () => { asklyListening = false; hideRecorder(); };
     asklyRecognition.onend = () => {
       asklyListening = false;
       if (confirmPending) {
         const text = voiceTranscript.trim();
         hideRecorder();
-        if (text) {
-          document.getElementById('chatbot-input').value = text;
-          send();
-        }
+        if (text) { document.getElementById('chatbot-input').value = text; send(); }
       }
     };
-
     asklyRecognition.start();
   }
 
@@ -589,16 +564,10 @@
     stopWaveformAnalysis();
     voiceRecorder.classList.remove('active');
     micBtn.classList.remove('recording');
-    if (asklyRecognition) {
-      asklyRecognition.stop();
-    } else {
-      hideRecorder();
-    }
+    if (asklyRecognition) { asklyRecognition.stop(); } else { hideRecorder(); }
   }
 
-  micBtn.onclick = () => {
-    if (asklyListening) { stopAndCancel(); } else { startVoiceRecognition(); }
-  };
+  micBtn.onclick = () => { if (asklyListening) { stopAndCancel(); } else { startVoiceRecognition(); } };
   voiceCancel.onclick = stopAndCancel;
   voiceConfirm.onclick = stopAndConfirm;
 
@@ -618,15 +587,6 @@
 
   document.getElementById('chatbot-title').textContent = BOT_NAME;
   applyLanguage('AUTO');
-
-  async function loadContext() {
-    try {
-      const res = await fetch(`${BACKEND}/api/scrape?url=${encodeURIComponent(WEBSITE_URL)}`);
-      const data = await res.json();
-      context = data.text || '';
-      siteUrl = data.siteUrl || WEBSITE_URL;
-    } catch(e) { context = ''; siteUrl = WEBSITE_URL; }
-  }
 
   // ── Vorlesen ──────────────────────────────────────────────────────
   function speakText(text, btn) {
@@ -677,14 +637,8 @@
       thumbDown.title = 'Nicht hilfreich';
       thumbDown.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
 
-      thumbUp.onclick = () => {
-        thumbUp.classList.toggle('active', !thumbUp.classList.contains('active'));
-        thumbDown.classList.remove('active');
-      };
-      thumbDown.onclick = () => {
-        thumbDown.classList.toggle('active', !thumbDown.classList.contains('active'));
-        thumbUp.classList.remove('active');
-      };
+      thumbUp.onclick = () => { thumbUp.classList.toggle('active', !thumbUp.classList.contains('active')); thumbDown.classList.remove('active'); };
+      thumbDown.onclick = () => { thumbDown.classList.toggle('active', !thumbDown.classList.contains('active')); thumbUp.classList.remove('active'); };
 
       const speakBtn = document.createElement('button');
       speakBtn.className = 'speak-btn';
