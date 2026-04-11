@@ -12,11 +12,11 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: #2D2FFF;
+    background: #1B17FF;
     color: white;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(45,47,255,0.35);
+    box-shadow: 0 4px 16px rgba(27,23,255,0.35);
     z-index: 9999;
     display: flex;
     align-items: center;
@@ -25,7 +25,7 @@
   }
   #chatbot-btn:hover {
     transform: scale(1.07);
-    box-shadow: 0 6px 20px rgba(45,47,255,0.45);
+    box-shadow: 0 6px 20px rgba(27,23,255,0.45);
   }
   #chatbot-btn svg { width: 26px; height: 26px; }
   #chatbot-box {
@@ -34,7 +34,7 @@
     right: 24px;
     width: 420px;
     height: 620px;
-    background: white;
+    background: #FFFFFF;
     border-radius: 18px;
     box-shadow: 0 8px 40px rgba(0,0,0,0.13);
     display: none;
@@ -45,8 +45,8 @@
   }
   #chatbot-box.open { display: flex; }
   #chatbot-header {
-    background: #2D2FFF;
-    color: white;
+    background: #1B17FF;
+    color: #FFFFFF;
     padding: 14px 16px;
     display: flex;
     justify-content: space-between;
@@ -89,7 +89,7 @@
   #askly-lang-dropdown {
     display: none;
     position: fixed;
-    background: white;
+    background: #FFFFFF;
     border-radius: 10px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.18);
     z-index: 99999;
@@ -100,7 +100,7 @@
   .lang-option {
     padding: 10px 14px;
     font-size: 13px;
-    color: #1a1a2e;
+    color: #000000;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -109,18 +109,18 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   .lang-option:hover { background: #f0f1ff; }
-  .lang-option.active { background: #f0f1ff; color: #2D2FFF; font-weight: 600; }
+  .lang-option.active { background: #f0f1ff; color: #1B17FF; font-weight: 600; }
   .lang-option .lang-code {
     font-weight: 700;
     font-size: 11px;
-    color: #2D2FFF;
+    color: #1B17FF;
     background: #e8eaff;
     padding: 1px 6px;
     border-radius: 4px;
     min-width: 28px;
     text-align: center;
   }
-  .lang-option.active .lang-code { background: #2D2FFF; color: white; }
+  .lang-option.active .lang-code { background: #1B17FF; color: white; }
   #chatbot-close {
     background: rgba(255,255,255,0.15);
     border: none;
@@ -153,20 +153,20 @@
     line-height: 1.6;
   }
   .msg.bot {
-    background: white;
+    background: #FFFFFF;
     border: 1px solid #e8eaf0;
     align-self: flex-start;
     border-bottom-left-radius: 4px;
-    color: #1a1a2e;
+    color: #000000;
   }
   .msg.user {
-    background: #2D2FFF;
-    color: white;
+    background: #1B17FF;
+    color: #FFFFFF;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
   }
-  .msg a { color: #2D2FFF; text-decoration: underline; word-break: break-word; }
-  #chatbot-footer { background: white; border-top: 1px solid #e8eaf0; flex-shrink: 0; }
+  .msg a { color: #1B17FF; text-decoration: underline; word-break: break-word; }
+  #chatbot-footer { background: #FFFFFF; border-top: 1px solid #e8eaf0; flex-shrink: 0; }
   #chatbot-input-row { display: flex; gap: 8px; padding: 12px; align-items: center; }
   #chatbot-input {
     flex: 1;
@@ -177,11 +177,11 @@
     outline: none;
     background: #f7f8fc;
     transition: border 0.2s;
-    color: #1a1a2e;
+    color: #000000;
   }
-  #chatbot-input:focus { border-color: #2D2FFF; background: white; }
+  #chatbot-input:focus { border-color: #1B17FF; background: #FFFFFF; }
   #chatbot-send, #askly-mic-btn {
-    background: #2D2FFF;
+    background: #1B17FF;
     color: white;
     border: none;
     border-radius: 50%;
@@ -194,7 +194,7 @@
     flex-shrink: 0;
     transition: background 0.2s, transform 0.1s;
   }
-  #chatbot-send:hover, #askly-mic-btn:hover { background: #1a1ccc; }
+  #chatbot-send:hover, #askly-mic-btn:hover { background: #0e0acc; }
   #chatbot-send:active, #askly-mic-btn:active { transform: scale(0.95); }
   #chatbot-send:disabled { opacity: 0.45; cursor: not-allowed; }
   #askly-mic-btn.listening { background: #e53935; animation: micPulse 1s infinite; }
@@ -209,7 +209,7 @@
     color: #b0b3c6;
     letter-spacing: 0.02em;
   }
-  #chatbot-branding a { color: #2D2FFF; font-weight: 600; text-decoration: none; }
+  #chatbot-branding a { color: #1B17FF; font-weight: 600; text-decoration: none; }
   #chatbot-branding a:hover { text-decoration: underline; }
   @keyframes bounce {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
@@ -244,7 +244,6 @@
 <div id="chatbot-box">
   <div id="chatbot-header">
     <div id="chatbot-header-left">
-      <!-- Echtes Askly Logo -->
       <img
         id="askly-logo"
         src="https://asklyteam-beep.github.io/chatbot-backend/logo%20.png"
