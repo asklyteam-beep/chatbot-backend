@@ -137,46 +137,46 @@
   .msg.user { background: #1B17FF; color: #FFFFFF; border-bottom-right-radius: 4px; }
   .msg a { color: #1B17FF; text-decoration: underline; word-break: break-word; }
   .msg-time { font-size: 10px; color: #b0b3c6; padding: 0 4px; }
-  .msg-actions { display: flex; align-items: center; gap: 6px; padding: 0 2px; }
-  .thumb-btn {
+  .msg-actions { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+
+  /* Daumen + Lautsprecher — nur Icon, kein Rahmen */
+  .thumb-btn, .speak-btn {
     background: none;
-    border: 1.5px solid #c0c3d0;
+    border: none;
     cursor: pointer;
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
+    padding: 2px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: border-color 0.2s, background 0.2s;
-    padding: 0;
+    transition: transform 0.15s;
   }
-  .thumb-btn svg { width: 13px; height: 13px; fill: none; stroke: #c0c3d0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s, fill 0.2s; }
-  .thumb-btn:hover { border-color: #000000; }
+  .thumb-btn svg, .speak-btn svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: #c0c3d0;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke 0.2s, fill 0.2s;
+  }
   .thumb-btn:hover svg { stroke: #000000; }
-  .thumb-btn.active { background: #000000; border-color: #000000; }
-  .thumb-btn.active svg { stroke: #ffffff; fill: #ffffff; }
-  .speak-btn {
-    background: none;
-    border: 1.5px solid #c0c3d0;
-    cursor: pointer;
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: border-color 0.2s, background 0.2s;
-    padding: 0;
-  }
-  .speak-btn svg { width: 13px; height: 13px; fill: none; stroke: #c0c3d0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s; }
-  .speak-btn:hover { border-color: #000000; }
   .speak-btn:hover svg { stroke: #000000; }
-  .speak-btn.speaking { background: #000000; border-color: #000000; animation: speakPulse 1s infinite; }
-  .speak-btn.speaking svg { stroke: #ffffff; }
+  .thumb-btn:hover { transform: scale(1.15); }
+  .speak-btn:hover { transform: scale(1.15); }
+
+  /* Aktiv-Zustand Daumen: Icon wird schwarz ausgefüllt */
+  .thumb-btn.active svg {
+    stroke: #000000;
+    fill: #000000;
+  }
+
+  /* Lautsprecher aktiv: pulsiert */
+  .speak-btn.speaking svg { stroke: #1B17FF; }
+  .speak-btn.speaking { animation: speakPulse 1s infinite; }
   @keyframes speakPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0.3); }
-    50% { box-shadow: 0 0 0 4px rgba(0,0,0,0); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
   }
 
   /* ── Voice Recorder Overlay ─────────────────────────────────────── */
@@ -195,7 +195,6 @@
     box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
   }
   #voice-recorder.active { display: flex; }
-
   #voice-waveform {
     display: flex;
     align-items: center;
@@ -219,18 +218,18 @@
     animation: waveAnim 0.8s ease-in-out infinite;
     min-height: 4px;
   }
-  .waveform-bar:nth-child(1) { animation-delay: 0.0s; }
-  .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
-  .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
-  .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
-  .waveform-bar:nth-child(5) { animation-delay: 0.2s; }
-  .waveform-bar:nth-child(6) { animation-delay: 0.1s; }
-  .waveform-bar:nth-child(7) { animation-delay: 0.0s; }
-  .waveform-bar:nth-child(8) { animation-delay: 0.15s; }
-  .waveform-bar:nth-child(9) { animation-delay: 0.25s; }
+  .waveform-bar:nth-child(1)  { animation-delay: 0.00s; }
+  .waveform-bar:nth-child(2)  { animation-delay: 0.10s; }
+  .waveform-bar:nth-child(3)  { animation-delay: 0.20s; }
+  .waveform-bar:nth-child(4)  { animation-delay: 0.30s; }
+  .waveform-bar:nth-child(5)  { animation-delay: 0.20s; }
+  .waveform-bar:nth-child(6)  { animation-delay: 0.10s; }
+  .waveform-bar:nth-child(7)  { animation-delay: 0.00s; }
+  .waveform-bar:nth-child(8)  { animation-delay: 0.15s; }
+  .waveform-bar:nth-child(9)  { animation-delay: 0.25s; }
   .waveform-bar:nth-child(10) { animation-delay: 0.05s; }
   .waveform-bar:nth-child(11) { animation-delay: 0.35s; }
-  .waveform-bar:nth-child(12) { animation-delay: 0.1s; }
+  .waveform-bar:nth-child(12) { animation-delay: 0.10s; }
   @keyframes waveAnim {
     0%, 100% { height: 6px; }
     50% { height: 28px; }
@@ -260,14 +259,17 @@
     transition: border-color 0.2s, background 0.2s;
   }
   #voice-cancel:hover { border-color: #e53935; background: #fff0f0; }
-  #voice-cancel svg { width: 16px; height: 16px; stroke: #666; }
+  #voice-cancel svg { width: 16px; height: 16px; stroke: #666; stroke-width: 2; stroke-linecap: round; }
   #voice-cancel:hover svg { stroke: #e53935; }
-
   #voice-status {
     font-size: 12px;
     color: #b0b3c6;
     text-align: center;
     flex: 1;
+    padding: 0 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   #voice-confirm {
     background: #1B17FF;
@@ -283,7 +285,7 @@
   }
   #voice-confirm:hover { background: #0e0acc; }
   #voice-confirm:active { transform: scale(0.95); }
-  #voice-confirm svg { width: 18px; height: 18px; stroke: white; stroke-width: 2.5; }
+  #voice-confirm svg { width: 18px; height: 18px; stroke: white; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
   #chatbot-footer { background: #FFFFFF; border-top: 1px solid #e8eaf0; flex-shrink: 0; position: relative; }
   #chatbot-input-row { display: flex; gap: 8px; padding: 12px; align-items: center; }
@@ -369,7 +371,6 @@
   </div>
 
   <div id="chatbot-footer">
-    <!-- Voice Recorder Overlay -->
     <div id="voice-recorder">
       <div id="voice-waveform">
         <div id="voice-waveform-bars">
@@ -389,17 +390,15 @@
         <span id="voice-timer">0:00</span>
       </div>
       <div id="voice-actions">
-        <!-- Cancel -->
         <button id="voice-cancel" title="Abbrechen">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
         <span id="voice-status">Aufnahme läuft...</span>
-        <!-- Confirm -->
         <button id="voice-confirm" title="Senden">
-          <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </button>
@@ -459,12 +458,13 @@
   let currentSpeech = null;
   let currentSpeakBtn = null;
 
-  // ── Voice Recorder State ──────────────────────────────────────────
+  // ── Voice Recorder ────────────────────────────────────────────────
   let asklyRecognition = null;
   let asklyListening = false;
   let voiceTranscript = '';
   let voiceTimerInterval = null;
   let voiceSeconds = 0;
+  let confirmPending = false;
 
   const micBtn = document.getElementById('askly-mic-btn');
   const voiceRecorder = document.getElementById('voice-recorder');
@@ -496,6 +496,7 @@
     micBtn.classList.add('recording');
     voiceStatus.textContent = 'Aufnahme läuft...';
     voiceTranscript = '';
+    confirmPending = false;
     startVoiceTimer();
   }
 
@@ -506,6 +507,7 @@
     voiceSeconds = 0;
     voiceTimer.textContent = '0:00';
     voiceTranscript = '';
+    confirmPending = false;
   }
 
   function startVoiceRecognition() {
@@ -528,16 +530,14 @@
 
     asklyRecognition.onresult = (event) => {
       let interim = '';
-      let final = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          final += event.results[i][0].transcript;
+          voiceTranscript += event.results[i][0].transcript + ' ';
         } else {
           interim += event.results[i][0].transcript;
         }
       }
-      if (final) voiceTranscript += final;
-      voiceStatus.textContent = voiceTranscript + interim || 'Aufnahme läuft...';
+      voiceStatus.textContent = (voiceTranscript + interim).trim() || 'Aufnahme läuft...';
     };
 
     asklyRecognition.onerror = () => {
@@ -547,35 +547,42 @@
 
     asklyRecognition.onend = () => {
       asklyListening = false;
+      if (confirmPending) {
+        const text = voiceTranscript.trim();
+        hideRecorder();
+        if (text) {
+          document.getElementById('chatbot-input').value = text;
+          send();
+        }
+      }
     };
 
     asklyRecognition.start();
   }
 
   function stopAndCancel() {
+    confirmPending = false;
     if (asklyRecognition) asklyRecognition.stop();
     asklyListening = false;
     hideRecorder();
   }
 
   function stopAndConfirm() {
-    if (asklyRecognition) asklyRecognition.stop();
-    asklyListening = false;
-    hideRecorder();
-    if (voiceTranscript.trim()) {
-      document.getElementById('chatbot-input').value = voiceTranscript.trim();
-      send();
+    confirmPending = true;
+    stopVoiceTimer();
+    voiceRecorder.classList.remove('active');
+    micBtn.classList.remove('recording');
+    if (asklyRecognition) {
+      asklyRecognition.stop();
+      // onend wird aufgerufen → dort wird gesendet
+    } else {
+      hideRecorder();
     }
   }
 
   micBtn.onclick = () => {
-    if (asklyListening) {
-      stopAndCancel();
-    } else {
-      startVoiceRecognition();
-    }
+    if (asklyListening) { stopAndCancel(); } else { startVoiceRecognition(); }
   };
-
   voiceCancel.onclick = stopAndCancel;
   voiceConfirm.onclick = stopAndConfirm;
 
@@ -611,7 +618,7 @@
     if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
       if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking'); currentSpeakBtn = null; }
-      if (btn === currentSpeakBtn || btn.classList.contains('speaking')) return;
+      if (btn.classList.contains('speaking')) return;
     }
     const cleanText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -654,8 +661,14 @@
       thumbDown.title = 'Nicht hilfreich';
       thumbDown.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
 
-      thumbUp.onclick = () => { thumbUp.classList.toggle('active', !thumbUp.classList.contains('active')); thumbDown.classList.remove('active'); };
-      thumbDown.onclick = () => { thumbDown.classList.toggle('active', !thumbDown.classList.contains('active')); thumbUp.classList.remove('active'); };
+      thumbUp.onclick = () => {
+        thumbUp.classList.toggle('active', !thumbUp.classList.contains('active'));
+        thumbDown.classList.remove('active');
+      };
+      thumbDown.onclick = () => {
+        thumbDown.classList.toggle('active', !thumbDown.classList.contains('active'));
+        thumbUp.classList.remove('active');
+      };
 
       const speakBtn = document.createElement('button');
       speakBtn.className = 'speak-btn';
