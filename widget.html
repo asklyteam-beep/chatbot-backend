@@ -25,6 +25,7 @@
   }
   #chatbot-btn:hover { transform: scale(1.07); box-shadow: 0 6px 20px rgba(27,23,255,0.45); }
   #chatbot-btn svg { width: 26px; height: 26px; }
+
   #chatbot-box {
     position: fixed;
     bottom: 90px;
@@ -41,6 +42,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   #chatbot-box.open { display: flex; }
+
   #chatbot-header {
     background: #1B17FF;
     color: #FFFFFF;
@@ -55,6 +57,7 @@
   #askly-logo { width: 28px; height: 28px; flex-shrink: 0; object-fit: contain; }
   #chatbot-title { font-weight: 600; font-size: 15px; letter-spacing: 0.01em; }
   #chatbot-header-right { display: flex; align-items: center; gap: 6px; }
+
   #askly-lang-btn {
     background: rgba(255,255,255,0.15);
     border: none;
@@ -70,6 +73,7 @@
     flex-shrink: 0;
   }
   #askly-lang-btn:hover { background: rgba(255,255,255,0.28); }
+
   #askly-lang-dropdown {
     display: none;
     position: fixed;
@@ -81,6 +85,7 @@
     overflow: hidden;
   }
   #askly-lang-dropdown.open { display: block; }
+
   .lang-option {
     padding: 10px 14px;
     font-size: 13px;
@@ -105,6 +110,7 @@
     text-align: center;
   }
   .lang-option.active .lang-code { background: #1B17FF; color: white; }
+
   #chatbot-close {
     background: rgba(255,255,255,0.15);
     border: none;
@@ -120,6 +126,7 @@
     transition: background 0.2s;
   }
   #chatbot-close:hover { background: rgba(255,255,255,0.25); }
+
   #chatbot-messages {
     flex: 1;
     overflow-y: auto;
@@ -128,16 +135,28 @@
     flex-direction: column;
     gap: 4px;
     background: #f7f8fc;
+    -webkit-overflow-scrolling: touch;
   }
+
   .msg-wrapper { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
   .msg-wrapper.user { align-items: flex-end; }
   .msg-wrapper.bot { align-items: flex-start; }
-  .msg { max-width: 82%; padding: 11px 15px; border-radius: 16px; font-size: 14px; line-height: 1.6; }
+
+  .msg {
+    max-width: 82%;
+    padding: 11px 15px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
   .msg.bot { background: #FFFFFF; border: 1px solid #e8eaf0; border-bottom-left-radius: 4px; color: #000000; }
   .msg.user { background: #1B17FF; color: #FFFFFF; border-bottom-right-radius: 4px; }
   .msg a { color: #1B17FF; text-decoration: underline; word-break: break-word; }
   .msg-time { font-size: 10px; color: #b0b3c6; padding: 0 4px; }
   .msg-actions { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+
   .thumb-btn, .speak-btn {
     background: none;
     border: none;
@@ -147,6 +166,7 @@
     align-items: center;
     justify-content: center;
     transition: transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
   }
   .thumb-btn svg, .speak-btn svg {
     width: 17px;
@@ -158,8 +178,8 @@
     stroke-linejoin: round;
     transition: stroke 0.2s, fill 0.2s;
   }
-  .thumb-btn:hover svg { stroke: #000000; }
-  .speak-btn:hover svg { stroke: #000000; }
+  .thumb-btn:hover svg, .thumb-btn:active svg { stroke: #000000; }
+  .speak-btn:hover svg, .speak-btn:active svg { stroke: #000000; }
   .thumb-btn:hover, .speak-btn:hover { transform: scale(1.15); }
   .thumb-btn.active svg { stroke: #000000; fill: #000000; }
   .speak-btn.speaking svg { stroke: #1B17FF; }
@@ -168,6 +188,8 @@
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.2); }
   }
+
+  /* ── Voice Recorder ─────────────────────────────────────────────── */
   #voice-recorder {
     display: none;
     position: absolute;
@@ -219,6 +241,7 @@
     align-items: center;
     justify-content: center;
     transition: border-color 0.2s, background 0.2s;
+    -webkit-tap-highlight-color: transparent;
   }
   #voice-cancel:hover { border-color: #e53935; background: #fff0f0; }
   #voice-cancel svg { width: 16px; height: 16px; stroke: #666; stroke-width: 2; stroke-linecap: round; fill: none; }
@@ -235,10 +258,12 @@
     align-items: center;
     justify-content: center;
     transition: background 0.2s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
   }
   #voice-confirm:hover { background: #0e0acc; }
   #voice-confirm:active { transform: scale(0.95); }
   #voice-confirm svg { width: 18px; height: 18px; stroke: white; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
   #chatbot-footer { background: #FFFFFF; border-top: 1px solid #e8eaf0; flex-shrink: 0; position: relative; }
   #chatbot-input-row { display: flex; gap: 8px; padding: 12px; align-items: center; }
   #chatbot-input {
@@ -251,8 +276,11 @@
     background: #f7f8fc;
     transition: border 0.2s;
     color: #000000;
+    -webkit-appearance: none;
+    appearance: none;
   }
   #chatbot-input:focus { border-color: #1B17FF; background: #FFFFFF; }
+
   #chatbot-send, #askly-mic-btn {
     background: #1B17FF;
     color: white;
@@ -266,6 +294,7 @@
     justify-content: center;
     flex-shrink: 0;
     transition: background 0.2s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
   }
   #chatbot-send:hover, #askly-mic-btn:hover { background: #0e0acc; }
   #chatbot-send:active, #askly-mic-btn:active { transform: scale(0.95); }
@@ -275,9 +304,11 @@
     0%, 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0.45); }
     50% { box-shadow: 0 0 0 6px rgba(229,57,53,0); }
   }
+
   #chatbot-branding { text-align: center; padding: 4px 0 8px; font-size: 11px; color: #b0b3c6; letter-spacing: 0.02em; }
   #chatbot-branding a { color: #1B17FF; font-weight: 600; text-decoration: none; }
   #chatbot-branding a:hover { text-decoration: underline; }
+
   @keyframes bounce {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
     30% { transform: translateY(-6px); opacity: 1; }
@@ -285,37 +316,75 @@
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #b0b3c6; margin: 0 2px; animation: bounce 1.2s infinite ease-in-out; }
   .dot:nth-child(2) { animation-delay: 0.2s; }
   .dot:nth-child(3) { animation-delay: 0.4s; }
-  @media (max-height: 750px) { #chatbot-box { height: 85vh; bottom: 80px; } }
-  @media (max-width: 460px) { #chatbot-box { width: calc(100vw - 24px); right: 12px; } }
+
+  /* ── Mobile: Bottom Sheet ──────────────────────────────────────── */
+  @media (max-width: 480px) {
+    #chatbot-box {
+      width: 100vw;
+      height: 88vh;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -4px 30px rgba(0,0,0,0.15);
+    }
+    #chatbot-btn {
+      bottom: 16px;
+      right: 16px;
+      width: 52px;
+      height: 52px;
+    }
+    #chatbot-header {
+      padding: 16px 16px 14px;
+      padding-top: max(16px, env(safe-area-inset-top));
+    }
+    #chatbot-input-row {
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    #chatbot-branding {
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+    .msg { max-width: 88%; font-size: 15px; }
+  }
+
+  @media (max-width: 380px) {
+    #chatbot-box { height: 92vh; }
+    #chatbot-input { font-size: 16px; } /* Verhindert iOS Auto-Zoom */
+  }
+
+  @media (max-height: 650px) and (max-width: 480px) {
+    #chatbot-box { height: 96vh; }
+  }
 </style>
 </head>
 <body>
 
-<button id="chatbot-btn">
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<button id="chatbot-btn" aria-label="Chat öffnen">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="white"/>
   </svg>
 </button>
 
-<div id="chatbot-box">
+<div id="chatbot-box" role="dialog" aria-label="Askly Chatbot" aria-modal="true">
   <div id="chatbot-header">
     <div id="chatbot-header-left">
-      <img id="askly-logo" src="https://asklyteam-beep.github.io/chatbot-backend/logo%20.png" alt="Askly Logo"/>
+      <img id="askly-logo" src="https://asklyteam-beep.github.io/chatbot-backend/logo%20.png" alt="Askly Logo" crossorigin="anonymous"/>
       <span id="chatbot-title">Assistent</span>
     </div>
     <div id="chatbot-header-right">
-      <button id="askly-lang-btn" title="Sprache wählen">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button id="askly-lang-btn" title="Sprache wählen" aria-label="Sprache wählen">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="10"/>
           <line x1="2" y1="12" x2="22" y2="12"/>
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
         </svg>
       </button>
-      <button id="chatbot-close">✕</button>
+      <button id="chatbot-close" aria-label="Chat schliessen">✕</button>
     </div>
   </div>
 
-  <div id="chatbot-messages">
+  <div id="chatbot-messages" role="log" aria-live="polite" aria-label="Chatverlauf">
     <div class="msg-wrapper bot">
       <div class="msg bot" id="welcome-msg"></div>
       <span class="msg-time" id="welcome-time"></span>
@@ -323,9 +392,9 @@
   </div>
 
   <div id="chatbot-footer">
-    <div id="voice-recorder">
+    <div id="voice-recorder" aria-hidden="true">
       <div id="voice-waveform">
-        <div id="voice-waveform-bars">
+        <div id="voice-waveform-bars" aria-hidden="true">
           <div class="waveform-bar"></div>
           <div class="waveform-bar"></div>
           <div class="waveform-bar"></div>
@@ -342,51 +411,66 @@
         <span id="voice-timer">0:00</span>
       </div>
       <div id="voice-actions">
-        <button id="voice-cancel" title="Abbrechen">
-          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <button id="voice-cancel" title="Abbrechen" aria-label="Aufnahme abbrechen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
-        <span id="voice-status">Aufnahme läuft...</span>
-        <button id="voice-confirm" title="Senden">
-          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="voice-status" aria-live="polite">Aufnahme läuft...</span>
+        <button id="voice-confirm" title="Senden" aria-label="Aufnahme senden">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
         </button>
       </div>
     </div>
 
     <div id="chatbot-input-row">
-      <input id="chatbot-input" type="text" />
-      <button id="askly-mic-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <input
+        id="chatbot-input"
+        type="text"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        maxlength="500"
+        aria-label="Nachricht eingeben"
+      />
+      <button id="askly-mic-btn" aria-label="Spracheingabe starten">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="9" y="2" width="6" height="12" rx="3"/>
           <path d="M5 10a7 7 0 0 0 14 0"/>
           <line x1="12" y1="19" x2="12" y2="22"/>
           <line x1="9" y1="22" x2="15" y2="22"/>
         </svg>
       </button>
-      <button id="chatbot-send">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <button id="chatbot-send" aria-label="Nachricht senden">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M22 2L11 13" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
           <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
     </div>
-    <div id="chatbot-branding">Powered by <a href="https://askly.ch" target="_blank">Askly</a></div>
+    <div id="chatbot-branding">Powered by <a href="https://askly.ch" target="_blank" rel="noopener noreferrer">Askly</a></div>
   </div>
 </div>
 
-<div id="askly-lang-dropdown">
-  <div class="lang-option active" data-lang="AUTO"><span class="lang-code">AUTO</span> Automatisch</div>
-  <div class="lang-option" data-lang="DE"><span class="lang-code">DE</span> Deutsch</div>
-  <div class="lang-option" data-lang="FR"><span class="lang-code">FR</span> Français</div>
-  <div class="lang-option" data-lang="IT"><span class="lang-code">IT</span> Italiano</div>
-  <div class="lang-option" data-lang="EN"><span class="lang-code">EN</span> English</div>
-  <div class="lang-option" data-lang="CH"><span class="lang-code">CH</span> Schweizerdeutsch</div>
+<div id="askly-lang-dropdown" role="listbox" aria-label="Sprachauswahl">
+  <div class="lang-option active" data-lang="AUTO" role="option" aria-selected="true"><span class="lang-code">AUTO</span> Automatisch</div>
+  <div class="lang-option" data-lang="DE" role="option" aria-selected="false"><span class="lang-code">DE</span> Deutsch</div>
+  <div class="lang-option" data-lang="FR" role="option" aria-selected="false"><span class="lang-code">FR</span> Français</div>
+  <div class="lang-option" data-lang="IT" role="option" aria-selected="false"><span class="lang-code">IT</span> Italiano</div>
+  <div class="lang-option" data-lang="EN" role="option" aria-selected="false"><span class="lang-code">EN</span> English</div>
+  <div class="lang-option" data-lang="CH" role="option" aria-selected="false"><span class="lang-code">CH</span> Schweizerdeutsch</div>
 </div>
 
 <script>
-  const BACKEND = 'https://sweet-determination-production.up.railway.app';
+  // ── Sicherheit: Nur erlaubter Backend-Host ────────────────────────
+  const ALLOWED_BACKEND = 'https://sweet-determination-production.up.railway.app';
+  const BACKEND = ALLOWED_BACKEND;
   const WEBSITE_URL = 'https://www.meggen.ch';
   const BOT_NAME = 'Gemeinde Meggen Assistent';
-  const CLIENT_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 Stunden Client-Cache
+  const CLIENT_CACHE_TTL = 6 * 60 * 60 * 1000;
+  const MAX_MESSAGE_LENGTH = 500;
+
+  // Erlaubte Sprachen — verhindert Injection via data-lang
+  const ALLOWED_LANGUAGES = new Set(['AUTO', 'DE', 'FR', 'IT', 'EN', 'CH']);
 
   const UI_STRINGS = {
     AUTO: { welcome: 'Hallo! Ich beantworte gerne Ihre Fragen zur Gemeinde Meggen.', placeholder: 'Ihre Frage...', error: 'Verbindungsfehler. Bitte erneut versuchen.', noAnswer: 'Keine Antwort erhalten.' },
@@ -405,23 +489,46 @@
   let selectedLanguage = 'AUTO';
   let currentSpeech = null;
   let currentSpeakBtn = null;
-
-  // ── Client-seitiger Cache ─────────────────────────────────────────
   let clientCache = null;
   let clientCacheTime = 0;
+  let isSending = false;
 
+  // ── Sicherheit: XSS-Schutz ───────────────────────────────────────
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // Sichere URL-Validierung — nur http/https erlaubt
+  function isSafeUrl(url) {
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+    } catch { return false; }
+  }
+
+  // ── Context laden ─────────────────────────────────────────────────
   async function loadContext() {
-    // Cache prüfen
     if (clientCache && (Date.now() - clientCacheTime) < CLIENT_CACHE_TTL) {
       context = clientCache.text || '';
       siteUrl = clientCache.siteUrl || WEBSITE_URL;
       return;
     }
     try {
-      const res = await fetch(`${BACKEND}/api/scrape?url=${encodeURIComponent(WEBSITE_URL)}`);
+      const url = new URL(`${BACKEND}/api/scrape`);
+      url.searchParams.set('url', WEBSITE_URL);
+      const res = await fetch(url.toString(), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!res.ok) throw new Error('Scrape failed');
       const data = await res.json();
-      context = data.text || '';
-      siteUrl = data.siteUrl || WEBSITE_URL;
+      context = typeof data.text === 'string' ? data.text : '';
+      siteUrl = typeof data.siteUrl === 'string' ? data.siteUrl : WEBSITE_URL;
       clientCache = data;
       clientCacheTime = Date.now();
     } catch(e) {
@@ -466,36 +573,40 @@
   }
 
   function startWaveformAnalysis(stream) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.5;
-    const source = audioContext.createMediaStreamSource(stream);
-    source.connect(analyser);
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    function draw() {
-      animationFrame = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(dataArray);
-      const avg = dataArray.slice(0, 60).reduce((a, b) => a + b, 0) / 60;
-      waveformBars.forEach((bar, i) => {
-        const noise = Math.sin(Date.now() / 180 + i * 0.8) * 0.4 + 0.6;
-        const height = Math.max(4, Math.min(30, (avg / 128) * 32 * noise));
-        bar.style.height = height + 'px';
-      });
-    }
-    draw();
+    try {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.5;
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      function draw() {
+        animationFrame = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+        const avg = dataArray.slice(0, 60).reduce((a, b) => a + b, 0) / 60;
+        waveformBars.forEach((bar, i) => {
+          const noise = Math.sin(Date.now() / 180 + i * 0.8) * 0.4 + 0.6;
+          const height = Math.max(4, Math.min(30, (avg / 128) * 32 * noise));
+          bar.style.height = height + 'px';
+        });
+      }
+      draw();
+    } catch(e) { console.warn('Waveform analysis failed:', e); }
   }
 
   function stopWaveformAnalysis() {
     if (animationFrame) { cancelAnimationFrame(animationFrame); animationFrame = null; }
-    if (audioContext) { audioContext.close(); audioContext = null; }
+    if (audioContext) { try { audioContext.close(); } catch(e) {} audioContext = null; }
     if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
     waveformBars.forEach(bar => { bar.style.height = '4px'; });
   }
 
   function showRecorder() {
     voiceRecorder.classList.add('active');
+    voiceRecorder.setAttribute('aria-hidden', 'false');
     micBtn.classList.add('recording');
+    micBtn.setAttribute('aria-label', 'Aufnahme stoppen');
     voiceStatus.textContent = 'Aufnahme läuft...';
     voiceTranscript = '';
     confirmPending = false;
@@ -504,7 +615,9 @@
 
   function hideRecorder() {
     voiceRecorder.classList.remove('active');
+    voiceRecorder.setAttribute('aria-hidden', 'true');
     micBtn.classList.remove('recording');
+    micBtn.setAttribute('aria-label', 'Spracheingabe starten');
     stopVoiceTimer();
     stopWaveformAnalysis();
     voiceSeconds = 0;
@@ -519,7 +632,7 @@
       return;
     }
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       startWaveformAnalysis(micStream);
     } catch(e) { console.warn('Mikrofon-Zugriff fehlgeschlagen:', e); }
 
@@ -534,18 +647,26 @@
     asklyRecognition.onresult = (event) => {
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) { voiceTranscript += event.results[i][0].transcript + ' '; }
-        else { interim += event.results[i][0].transcript; }
+        if (event.results[i].isFinal) {
+          voiceTranscript += event.results[i][0].transcript + ' ';
+        } else {
+          interim += event.results[i][0].transcript;
+        }
       }
-      voiceStatus.textContent = (voiceTranscript + interim).trim() || 'Aufnahme läuft...';
+      // Sicherheit: Transcript auf 500 Zeichen begrenzen
+      voiceTranscript = voiceTranscript.slice(0, MAX_MESSAGE_LENGTH);
+      voiceStatus.textContent = (voiceTranscript + interim).trim().slice(0, 100) || 'Aufnahme läuft...';
     };
     asklyRecognition.onerror = () => { asklyListening = false; hideRecorder(); };
     asklyRecognition.onend = () => {
       asklyListening = false;
       if (confirmPending) {
-        const text = voiceTranscript.trim();
+        const text = voiceTranscript.trim().slice(0, MAX_MESSAGE_LENGTH);
         hideRecorder();
-        if (text) { document.getElementById('chatbot-input').value = text; send(); }
+        if (text) {
+          document.getElementById('chatbot-input').value = text;
+          send();
+        }
       }
     };
     asklyRecognition.start();
@@ -553,7 +674,7 @@
 
   function stopAndCancel() {
     confirmPending = false;
-    if (asklyRecognition) asklyRecognition.stop();
+    if (asklyRecognition) { try { asklyRecognition.stop(); } catch(e) {} }
     asklyListening = false;
     hideRecorder();
   }
@@ -564,7 +685,8 @@
     stopWaveformAnalysis();
     voiceRecorder.classList.remove('active');
     micBtn.classList.remove('recording');
-    if (asklyRecognition) { asklyRecognition.stop(); } else { hideRecorder(); }
+    if (asklyRecognition) { try { asklyRecognition.stop(); } catch(e) { hideRecorder(); } }
+    else { hideRecorder(); }
   }
 
   micBtn.onclick = () => { if (asklyListening) { stopAndCancel(); } else { startVoiceRecognition(); } };
@@ -579,6 +701,7 @@
   }
 
   function applyLanguage(lang) {
+    if (!ALLOWED_LANGUAGES.has(lang)) lang = 'AUTO';
     const strings = UI_STRINGS[lang] || UI_STRINGS['DE'];
     document.getElementById('welcome-msg').textContent = strings.welcome;
     document.getElementById('chatbot-input').placeholder = strings.placeholder;
@@ -596,7 +719,8 @@
       if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking'); currentSpeakBtn = null; }
       if (btn.classList.contains('speaking')) return;
     }
-    const cleanText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const cleanText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000);
+    if (!cleanText) return;
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = TTS_LANG_CODES[selectedLanguage] || 'de-DE';
     utterance.rate = 1.0;
@@ -611,11 +735,11 @@
   function addMsg(html, type, withActions = false) {
     const box = document.getElementById('chatbot-messages');
     const wrapper = document.createElement('div');
-    wrapper.className = 'msg-wrapper ' + type;
+    wrapper.className = 'msg-wrapper ' + (type === 'user' ? 'user' : 'bot');
 
     const bubble = document.createElement('div');
-    bubble.className = 'msg ' + type;
-    bubble.innerHTML = html;
+    bubble.className = 'msg ' + (type === 'user' ? 'user' : 'bot');
+    bubble.innerHTML = html; // HTML wird nur für Bot-Antworten verwendet (cleanReply sanitized)
     wrapper.appendChild(bubble);
 
     const time = document.createElement('span');
@@ -630,12 +754,14 @@
       const thumbUp = document.createElement('button');
       thumbUp.className = 'thumb-btn';
       thumbUp.title = 'Hilfreich';
-      thumbUp.innerHTML = `<svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
+      thumbUp.setAttribute('aria-label', 'Antwort hilfreich');
+      thumbUp.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
 
       const thumbDown = document.createElement('button');
       thumbDown.className = 'thumb-btn';
       thumbDown.title = 'Nicht hilfreich';
-      thumbDown.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
+      thumbDown.setAttribute('aria-label', 'Antwort nicht hilfreich');
+      thumbDown.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
 
       thumbUp.onclick = () => { thumbUp.classList.toggle('active', !thumbUp.classList.contains('active')); thumbDown.classList.remove('active'); };
       thumbDown.onclick = () => { thumbDown.classList.toggle('active', !thumbDown.classList.contains('active')); thumbUp.classList.remove('active'); };
@@ -643,7 +769,8 @@
       const speakBtn = document.createElement('button');
       speakBtn.className = 'speak-btn';
       speakBtn.title = 'Vorlesen';
-      speakBtn.innerHTML = `<svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+      speakBtn.setAttribute('aria-label', 'Antwort vorlesen');
+      speakBtn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
       speakBtn.onclick = () => speakText(bubble.innerHTML, speakBtn);
 
       actions.appendChild(thumbUp);
@@ -657,48 +784,92 @@
     return bubble;
   }
 
+  // ── Sicherheit: Reply sanitizen ───────────────────────────────────
   function cleanReply(text) {
-    return text
+    if (typeof text !== 'string') return '';
+
+    // Markdown entfernen
+    text = text
       .replace(/\*\*(.*?)\*\*/g, '$1')
       .replace(/\*(.*?)\*/g, '$1')
-      .replace(/#{1,3} /g, '')
-      .replace(/\n/g, '<br>')
-      .replace(/(https?:\/\/[^\s<"]+)/g, (url) => {
+      .replace(/#{1,3} /g, '');
+
+    // Zeilenumbrüche
+    const lines = text.split('\n');
+    const parts = [];
+
+    for (const line of lines) {
+      // URLs sicher verlinken — nur http/https
+      const linkedLine = line.replace(/(https?:\/\/[^\s<>"']+)/g, (url) => {
+        if (!isSafeUrl(url)) return escapeHtml(url);
         try {
           const { pathname } = new URL(url);
           const segments = pathname.split('/').filter(Boolean);
           const label = segments.length > 0
-            ? decodeURIComponent(segments[segments.length - 1]).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-            : url;
-          return `<a href="${url}" target="_blank" rel="noopener">${label}</a>`;
-        } catch { return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`; }
+            ? decodeURIComponent(segments[segments.length - 1])
+                .replace(/-/g, ' ')
+                .replace(/\b\w/g, c => c.toUpperCase())
+            : new URL(url).hostname;
+          return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+        } catch { return escapeHtml(url); }
       });
+      parts.push(linkedLine);
+    }
+
+    return parts.join('<br>');
   }
 
+  // ── Nachricht senden ──────────────────────────────────────────────
   async function send() {
+    if (isSending) return; // Doppel-Submit verhindern
     const input = document.getElementById('chatbot-input');
     const btn = document.getElementById('chatbot-send');
-    const text = input.value.trim();
-    if (!text) return;
+    const rawText = input.value.trim();
+
+    // Validierung
+    if (!rawText) return;
+    if (rawText.length > MAX_MESSAGE_LENGTH) {
+      input.value = rawText.slice(0, MAX_MESSAGE_LENGTH);
+      return;
+    }
+
     const strings = UI_STRINGS[selectedLanguage] || UI_STRINGS['DE'];
+    isSending = true;
     input.value = '';
     btn.disabled = true;
-    addMsg(text, 'user');
+
+    // User-Nachricht sicher anzeigen (escapeHtml)
+    addMsg(escapeHtml(rawText), 'user');
     const loading = addMsg('<span class="dot"></span><span class="dot"></span><span class="dot"></span>', 'bot');
+
     try {
       const res = await fetch(`${BACKEND}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, context, siteUrl, language: selectedLanguage })
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          message: rawText,
+          context: context,
+          siteUrl: siteUrl,
+          language: ALLOWED_LANGUAGES.has(selectedLanguage) ? selectedLanguage : 'AUTO',
+        }),
       });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+
+      if (typeof data.reply !== 'string') throw new Error('Invalid response');
       const replyHtml = cleanReply(data.reply || strings.noAnswer);
       loading.parentElement.remove();
       addMsg(replyHtml, 'bot', true);
     } catch(e) {
-      loading.innerHTML = strings.error;
+      loading.innerHTML = escapeHtml(strings.error);
+    } finally {
+      btn.disabled = false;
+      isSending = false;
     }
-    btn.disabled = false;
   }
 
   // ── Sprachumschalter ──────────────────────────────────────────────
@@ -716,9 +887,15 @@
   document.querySelectorAll('.lang-option').forEach(option => {
     option.addEventListener('click', (e) => {
       e.stopPropagation();
-      selectedLanguage = option.dataset.lang;
-      document.querySelectorAll('.lang-option').forEach(o => o.classList.remove('active'));
+      const lang = option.dataset.lang;
+      if (!ALLOWED_LANGUAGES.has(lang)) return; // Sicherheitscheck
+      selectedLanguage = lang;
+      document.querySelectorAll('.lang-option').forEach(o => {
+        o.classList.remove('active');
+        o.setAttribute('aria-selected', 'false');
+      });
       option.classList.add('active');
+      option.setAttribute('aria-selected', 'true');
       langDropdown.classList.remove('open');
       applyLanguage(selectedLanguage);
     });
@@ -726,18 +903,40 @@
 
   document.addEventListener('click', () => langDropdown.classList.remove('open'));
 
+  // Escape-Taste schliesst Widget
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.getElementById('chatbot-box').classList.remove('open');
+      langDropdown.classList.remove('open');
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      if (asklyListening) stopAndCancel();
+    }
+  });
+
   document.getElementById('chatbot-btn').onclick = () => {
-    document.getElementById('chatbot-box').classList.toggle('open');
-    if (!context) loadContext();
+    const box = document.getElementById('chatbot-box');
+    const isOpening = !box.classList.contains('open');
+    box.classList.toggle('open');
+    if (isOpening) {
+      if (!context) loadContext();
+      setTimeout(() => document.getElementById('chatbot-input').focus(), 300);
+    }
   };
+
   document.getElementById('chatbot-close').onclick = () => {
     document.getElementById('chatbot-box').classList.remove('open');
     langDropdown.classList.remove('open');
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (asklyListening) stopAndCancel();
   };
+
   document.getElementById('chatbot-send').onclick = send;
-  document.getElementById('chatbot-input').onkeydown = e => { if (e.key === 'Enter') send(); };
+  document.getElementById('chatbot-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
 </script>
 </body>
 </html>
