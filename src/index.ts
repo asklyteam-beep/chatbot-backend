@@ -5,7 +5,6 @@ import * as cheerio from "cheerio";
 
 const app = express();
 
-// CORS — flexibel für alle erlaubten Origins
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     if (
@@ -26,8 +25,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Preflight für alle Routen
-
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -81,6 +79,13 @@ RESPONSE RULES:
 - Never refer to yourself as a bot or mention internal context, knowledge base, or data sources
 
 CONTENT RULES:
+- The website content is in German. When answering questions in other languages, translate concepts to match German content:
+  "opening hours" = "Öffnungszeiten", "address" = "Adresse", "tax" = "Steuer", "dog" = "Hund",
+  "construction" = "Bau/Baugesuch", "register" = "Anmeldung", "waste" = "Abfall",
+  "contact" = "Kontakt", "municipality" = "Gemeinde", "office" = "Verwaltung/Schalter",
+  "passport" = "Pass", "identity card" = "Ausweis", "school" = "Schule",
+  "social" = "Soziales", "health" = "Gesundheit", "environment" = "Umwelt",
+  "permit" = "Bewilligung", "invoice" = "Rechnung", "payment" = "Zahlung"
 - Only use information from the provided website content
 - Never speculate, guess, or use external knowledge
 - If you can partially answer, give the answer — then stop. Never add a second paragraph saying the information is not available after already answering
