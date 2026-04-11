@@ -132,8 +132,6 @@
     gap: 4px;
     background: #f7f8fc;
   }
-
-  /* Nachrichten-Wrapper für Timestamp + Bubble */
   .msg-wrapper {
     display: flex;
     flex-direction: column;
@@ -142,7 +140,6 @@
   }
   .msg-wrapper.user { align-items: flex-end; }
   .msg-wrapper.bot { align-items: flex-start; }
-
   .msg {
     max-width: 82%;
     padding: 11px 15px;
@@ -162,37 +159,93 @@
     border-bottom-right-radius: 4px;
   }
   .msg a { color: #1B17FF; text-decoration: underline; word-break: break-word; }
-
-  /* Timestamp */
   .msg-time {
     font-size: 10px;
     color: #b0b3c6;
     padding: 0 4px;
   }
-
-  /* Feedback + Vorlesen Zeile */
   .msg-actions {
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 0 2px;
   }
-  .msg-action-btn {
+
+  /* Daumen Buttons — Rahmen-Stil, füllt sich schwarz bei Klick */
+  .thumb-btn {
     background: none;
-    border: none;
+    border: 1.5px solid #c0c3d0;
     cursor: pointer;
-    padding: 2px 4px;
+    width: 26px;
+    height: 26px;
     border-radius: 6px;
-    font-size: 13px;
-    color: #b0b3c6;
-    transition: color 0.2s, background 0.2s;
     display: flex;
     align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, background 0.2s;
+    padding: 0;
   }
-  .msg-action-btn:hover { background: #e8eaff; color: #1B17FF; }
-  .msg-action-btn.active-up { color: #22c55e; }
-  .msg-action-btn.active-down { color: #e53935; }
-  .msg-action-btn.speaking { color: #1B17FF; }
+  .thumb-btn svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: #c0c3d0;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke 0.2s, fill 0.2s;
+  }
+  .thumb-btn:hover {
+    border-color: #000000;
+  }
+  .thumb-btn:hover svg {
+    stroke: #000000;
+  }
+  .thumb-btn.active {
+    background: #000000;
+    border-color: #000000;
+  }
+  .thumb-btn.active svg {
+    stroke: #ffffff;
+    fill: #ffffff;
+  }
+
+  /* Lautsprecher Button */
+  .speak-btn {
+    background: none;
+    border: 1.5px solid #c0c3d0;
+    cursor: pointer;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, background 0.2s;
+    padding: 0;
+  }
+  .speak-btn svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: #c0c3d0;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke 0.2s, fill 0.2s;
+  }
+  .speak-btn:hover { border-color: #000000; }
+  .speak-btn:hover svg { stroke: #000000; }
+  .speak-btn.speaking {
+    background: #000000;
+    border-color: #000000;
+    animation: speakPulse 1s infinite;
+  }
+  .speak-btn.speaking svg { stroke: #ffffff; }
+  @keyframes speakPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0.3); }
+    50% { box-shadow: 0 0 0 4px rgba(0,0,0,0); }
+  }
 
   #chatbot-footer { background: #FFFFFF; border-top: 1px solid #e8eaf0; flex-shrink: 0; }
   #chatbot-input-row { display: flex; gap: 8px; padding: 12px; align-items: center; }
@@ -333,19 +386,15 @@
     CH:   { welcome: 'Hoi! I beantworte gern Iri Frage zur Gmeinde Meggen.', placeholder: 'Iri Frag...', error: 'Verbindigsfehler. Bitte nomol versuche.', noAnswer: 'Kei Antwort erhalte.' },
   };
 
-  const TTS_LANG_CODES = {
-    AUTO: 'de-CH', DE: 'de-DE', FR: 'fr-FR', IT: 'it-IT', EN: 'en-GB', CH: 'de-CH',
-  };
-  const MIC_LANG_CODES = {
-    AUTO: 'de-CH', DE: 'de-CH', FR: 'fr-CH', IT: 'it-CH', EN: 'en-GB', CH: 'de-CH',
-  };
+  const TTS_LANG_CODES = { AUTO: 'de-CH', DE: 'de-DE', FR: 'fr-FR', IT: 'it-IT', EN: 'en-GB', CH: 'de-CH' };
+  const MIC_LANG_CODES = { AUTO: 'de-CH', DE: 'de-CH', FR: 'fr-CH', IT: 'it-CH', EN: 'en-GB', CH: 'de-CH' };
 
   let context = '';
   let siteUrl = '';
   let selectedLanguage = 'AUTO';
   let currentSpeech = null;
+  let currentSpeakBtn = null;
 
-  // ── Zeitstempel ───────────────────────────────────────────────────
   function getTimestamp() {
     const now = new Date();
     return now.toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit' })
@@ -368,33 +417,39 @@
       const data = await res.json();
       context = data.text || '';
       siteUrl = data.siteUrl || WEBSITE_URL;
-    } catch(e) {
-      context = '';
-      siteUrl = WEBSITE_URL;
-    }
+    } catch(e) { context = ''; siteUrl = WEBSITE_URL; }
   }
 
-  // ── Vorlesen ─────────────────────────────────────────────────────
+  // ── Vorlesen ──────────────────────────────────────────────────────
   function speakText(text, btn) {
     if (!window.speechSynthesis) return;
-    // Stoppen wenn schon läuft
-    if (currentSpeech && window.speechSynthesis.speaking) {
+    // Stopp wenn aktuell läuft
+    if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
-      if (btn.classList.contains('speaking')) {
-        btn.classList.remove('speaking');
-        btn.title = '🔊';
-        currentSpeech = null;
-        return;
+      if (currentSpeakBtn) {
+        currentSpeakBtn.classList.remove('speaking');
+        currentSpeakBtn = null;
       }
+      if (btn === currentSpeakBtn || btn.classList.contains('speaking')) return;
     }
-    // HTML-Tags entfernen für TTS
     const cleanText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = TTS_LANG_CODES[selectedLanguage] || 'de-DE';
     utterance.rate = 1.0;
-    utterance.onstart = () => { btn.classList.add('speaking'); btn.title = '⏹'; };
-    utterance.onend = () => { btn.classList.remove('speaking'); btn.title = '🔊'; currentSpeech = null; };
-    utterance.onerror = () => { btn.classList.remove('speaking'); currentSpeech = null; };
+    utterance.onstart = () => {
+      btn.classList.add('speaking');
+      currentSpeakBtn = btn;
+    };
+    utterance.onend = () => {
+      btn.classList.remove('speaking');
+      currentSpeakBtn = null;
+      currentSpeech = null;
+    };
+    utterance.onerror = () => {
+      btn.classList.remove('speaking');
+      currentSpeakBtn = null;
+      currentSpeech = null;
+    };
     currentSpeech = utterance;
     window.speechSynthesis.speak(utterance);
   }
@@ -410,42 +465,44 @@
     bubble.innerHTML = html;
     wrapper.appendChild(bubble);
 
-    // Timestamp
     const time = document.createElement('span');
     time.className = 'msg-time';
     time.textContent = getTimestamp();
     wrapper.appendChild(time);
 
-    // Aktionen nur für Bot-Antworten
     if (type === 'bot' && withActions) {
       const actions = document.createElement('div');
       actions.className = 'msg-actions';
 
-      // Daumen hoch
+      // Daumen hoch — SVG Icon
       const thumbUp = document.createElement('button');
-      thumbUp.className = 'msg-action-btn';
-      thumbUp.title = '👍';
-      thumbUp.innerHTML = '👍';
-      thumbUp.onclick = () => {
-        thumbUp.classList.toggle('active-up');
-        thumbDown.classList.remove('active-down');
-      };
+      thumbUp.className = 'thumb-btn';
+      thumbUp.title = 'Hilfreich';
+      thumbUp.innerHTML = `<svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
 
-      // Daumen runter
+      // Daumen runter — SVG Icon
       const thumbDown = document.createElement('button');
-      thumbDown.className = 'msg-action-btn';
-      thumbDown.title = '👎';
-      thumbDown.innerHTML = '👎';
+      thumbDown.className = 'thumb-btn';
+      thumbDown.title = 'Nicht hilfreich';
+      thumbDown.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
+
+      // Gegenseitig exklusiv
+      thumbUp.onclick = () => {
+        const wasActive = thumbUp.classList.contains('active');
+        thumbUp.classList.toggle('active', !wasActive);
+        thumbDown.classList.remove('active');
+      };
       thumbDown.onclick = () => {
-        thumbDown.classList.toggle('active-down');
-        thumbUp.classList.remove('active-up');
+        const wasActive = thumbDown.classList.contains('active');
+        thumbDown.classList.toggle('active', !wasActive);
+        thumbUp.classList.remove('active');
       };
 
-      // Vorlesen
+      // Lautsprecher — SVG Icon
       const speakBtn = document.createElement('button');
-      speakBtn.className = 'msg-action-btn';
-      speakBtn.title = '🔊';
-      speakBtn.innerHTML = '🔊';
+      speakBtn.className = 'speak-btn';
+      speakBtn.title = 'Vorlesen';
+      speakBtn.innerHTML = `<svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
       speakBtn.onclick = () => speakText(bubble.innerHTML, speakBtn);
 
       actions.appendChild(thumbUp);
@@ -473,9 +530,7 @@
             ? decodeURIComponent(segments[segments.length - 1]).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
             : url;
           return `<a href="${url}" target="_blank" rel="noopener">${label}</a>`;
-        } catch {
-          return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
-        }
+        } catch { return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`; }
       });
   }
 
@@ -497,10 +552,7 @@
       });
       const data = await res.json();
       const replyHtml = cleanReply(data.reply || strings.noAnswer);
-      // Loading bubble ersetzen und Aktionen hinzufügen
-      const box = document.getElementById('chatbot-messages');
-      const loadingWrapper = loading.parentElement;
-      loadingWrapper.remove();
+      loading.parentElement.remove();
       addMsg(replyHtml, 'bot', true);
     } catch(e) {
       loading.innerHTML = strings.error;
