@@ -30,6 +30,20 @@ app.use(express.json());
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// ── Garantierte Basis-Infos (immer verfügbar, unabhängig vom Scraping) ──
+const FIXED_INFO = `
+GARANTIERTE INFORMATIONEN DER GEMEINDE MEGGEN:
+
+ÖFFNUNGSZEITEN Gemeindeverwaltung:
+Montag bis Freitag: 08.00–11.45 Uhr und 13.30–17.00 Uhr
+Donnerstagnachmittag: geschlossen
+Terminvereinbarungen ausserhalb der Öffnungszeiten sind nach persönlicher Vereinbarung möglich.
+
+ADRESSE: Gemeinde Meggen, Am Dorfplatz 3, Postfach 572, 6045 Meggen
+TELEFON: 041 379 81 11
+EMAIL: info@meggen.ch
+`;
+
 app.get("/api", (_req, res) => {
   res.send("<h1>Chatbot Backend läuft ✓</h1>");
 });
@@ -78,81 +92,110 @@ RESPONSE RULES:
 - Always use a friendly professional tone
 - Never refer to yourself as a bot or mention internal context, knowledge base, or data sources
 
+TYPO TOLERANCE:
+- Be very tolerant of spelling mistakes, typos and misspellings in ALL languages
+- Examples of typos to recognize:
+  DE: "öffnugnszeiten / öffnungszeite / offnungszeiten / öffnungszeitn" → "Öffnungszeiten"
+  DE: "adrese / addresse / adrsse" → "Adresse"
+  DE: "hunde steuer / hundssteuer / hundsteuer" → "Hundesteuer"
+  DE: "bawbewilligung / baubewiligung / baugesuch" → "Baubewilligung"
+  DE: "anmeldung / anmeldng / anmeldun" → "Anmeldung"
+  FR: "heure ouverture / heurs d'ouverture / horair" → "heures d'ouverture"
+  FR: "impot / impôs / taxe chien" → "impôts / taxe sur les chiens"
+  IT: "orari apertura / orario appertura / orari" → "orari di apertura"
+  IT: "tassa cane / tasa sul cane" → "tassa sul cane"
+  EN: "openning hours / opning hours / opening hour" → "opening hours"
+  EN: "dog tax / dogtax / dog taxx" → "dog tax"
+  CH: "öffnigszite / öffnigsziite / ufzite" → "Öffnungszeiten"
+- Always try to understand the intent of the question, even with poor spelling
+
 CONTENT RULES:
-- The website content is in German. You must translate any non-German question into German concepts before searching the content. Use this translation dictionary:
+- The website content is in German. Translate any non-German question into German concepts. Use this dictionary:
 
   OPENING HOURS:
-  FR: "heures d'ouverture / horaires" = DE: "Öffnungszeiten"
-  IT: "orari di apertura / orari" = DE: "Öffnungszeiten"
-  EN: "opening hours / hours" = DE: "Öffnungszeiten"
-  CH: "Öffnigsziite / offe" = DE: "Öffnungszeiten"
+  FR: "heures d'ouverture / horaires / heure ouverture" = DE: "Öffnungszeiten"
+  IT: "orari di apertura / orari / apertura" = DE: "Öffnungszeiten"
+  EN: "opening hours / hours / when open" = DE: "Öffnungszeiten"
+  CH: "Öffnigsziite / ufzite / offe" = DE: "Öffnungszeiten"
 
   ADDRESS / CONTACT:
-  FR: "adresse / contact / coordonnées" = DE: "Adresse / Kontakt"
-  IT: "indirizzo / contatto / recapito" = DE: "Adresse / Kontakt"
-  EN: "address / contact / location" = DE: "Adresse / Kontakt"
+  FR: "adresse / contact / coordonnées / où se trouve" = DE: "Adresse / Kontakt"
+  IT: "indirizzo / contatto / dove si trova" = DE: "Adresse / Kontakt"
+  EN: "address / contact / location / where is" = DE: "Adresse / Kontakt"
+  CH: "adrässe / wo isch / kontakt" = DE: "Adresse / Kontakt"
 
   TAXES:
-  FR: "impôts / taxes / fiscalité" = DE: "Steuern"
-  IT: "tasse / imposte / fiscalità" = DE: "Steuern"
-  EN: "tax / taxes / taxation" = DE: "Steuern"
+  FR: "impôts / taxes / fiscalité / déclaration" = DE: "Steuern / Steuererklärung"
+  IT: "tasse / imposte / fiscalità / dichiarazione" = DE: "Steuern / Steuererklärung"
+  EN: "tax / taxes / taxation / tax return" = DE: "Steuern / Steuererklärung"
+  CH: "stüüre / stüür / stüürerklärung" = DE: "Steuern"
 
   DOG TAX:
-  FR: "taxe sur les chiens / impôt canin" = DE: "Hundesteuer"
-  IT: "tassa sul cane / imposta cani" = DE: "Hundesteuer"
-  EN: "dog tax / dog registration" = DE: "Hundesteuer"
+  FR: "taxe sur les chiens / impôt canin / chien" = DE: "Hundesteuer"
+  IT: "tassa sul cane / imposta cani / cane" = DE: "Hundesteuer"
+  EN: "dog tax / dog registration / dog" = DE: "Hundesteuer"
+  CH: "hundssteuer / hund / hundsstüür" = DE: "Hundesteuer"
 
   CONSTRUCTION / PERMITS:
-  FR: "permis de construire / construction / bâtiment" = DE: "Baubewilligung / Baugesuch"
-  IT: "permesso di costruzione / edilizia / costruzione" = DE: "Baubewilligung / Baugesuch"
-  EN: "building permit / construction permit" = DE: "Baubewilligung / Baugesuch"
+  FR: "permis de construire / construction / bâtiment / rénover" = DE: "Baubewilligung / Baugesuch"
+  IT: "permesso di costruzione / edilizia / costruzione / ristrutturazione" = DE: "Baubewilligung / Baugesuch"
+  EN: "building permit / construction permit / renovation" = DE: "Baubewilligung / Baugesuch"
+  CH: "baubewilligung / baue / umbau" = DE: "Baubewilligung / Baugesuch"
 
   REGISTRATION / MOVING:
-  FR: "inscription / enregistrement / déménagement / domicile" = DE: "Anmeldung / Umzug / Wohnsitz"
-  IT: "iscrizione / registrazione / trasloco / domicilio" = DE: "Anmeldung / Umzug / Wohnsitz"
-  EN: "register / registration / move / residence" = DE: "Anmeldung / Umzug / Wohnsitz"
+  FR: "inscription / enregistrement / déménagement / domicile / s'inscrire" = DE: "Anmeldung / Umzug / Wohnsitz"
+  IT: "iscrizione / registrazione / trasloco / domicilio / trasferirsi" = DE: "Anmeldung / Umzug / Wohnsitz"
+  EN: "register / registration / move / residence / sign up" = DE: "Anmeldung / Umzug / Wohnsitz"
+  CH: "amälde / umzug / wohnsitz / iizügle" = DE: "Anmeldung / Umzug"
 
   WASTE / RECYCLING:
-  FR: "déchets / ordures / recyclage / poubelles" = DE: "Abfall / Entsorgung / Recycling"
-  IT: "rifiuti / spazzatura / riciclaggio / raccolta" = DE: "Abfall / Entsorgung / Recycling"
-  EN: "waste / garbage / recycling / trash" = DE: "Abfall / Entsorgung / Recycling"
+  FR: "déchets / ordures / recyclage / poubelles / encombrants" = DE: "Abfall / Entsorgung / Recycling / Sperrmüll"
+  IT: "rifiuti / spazzatura / riciclaggio / raccolta / ingombranti" = DE: "Abfall / Entsorgung / Recycling / Sperrmüll"
+  EN: "waste / garbage / recycling / trash / bulky waste" = DE: "Abfall / Entsorgung / Recycling / Sperrmüll"
+  CH: "abfall / müll / recycling / sperrmüll / entsorgig" = DE: "Abfall / Entsorgung"
 
   MUNICIPALITY / ADMINISTRATION:
-  FR: "mairie / commune / administration / guichet" = DE: "Gemeinde / Verwaltung / Schalter"
-  IT: "comune / municipio / amministrazione / sportello" = DE: "Gemeinde / Verwaltung / Schalter"
-  EN: "municipality / town hall / administration / office" = DE: "Gemeinde / Verwaltung / Schalter"
+  FR: "mairie / commune / administration / guichet / hôtel de ville" = DE: "Gemeinde / Verwaltung / Schalter"
+  IT: "comune / municipio / amministrazione / sportello / palazzo comunale" = DE: "Gemeinde / Verwaltung / Schalter"
+  EN: "municipality / town hall / administration / office / council" = DE: "Gemeinde / Verwaltung / Schalter"
+  CH: "gmeind / gmeindeverwaltung / schalter / verwaltung" = DE: "Gemeinde / Verwaltung"
 
   IDENTITY / DOCUMENTS:
-  FR: "passeport / carte d'identité / document / permis" = DE: "Pass / Ausweis / Dokument"
-  IT: "passaporto / carta d'identità / documento / permesso" = DE: "Pass / Ausweis / Dokument"
-  EN: "passport / identity card / document / permit" = DE: "Pass / Ausweis / Dokument"
+  FR: "passeport / carte d'identité / document / permis / papiers" = DE: "Pass / Ausweis / Dokument"
+  IT: "passaporto / carta d'identità / documento / permesso / patente" = DE: "Pass / Ausweis / Dokument"
+  EN: "passport / identity card / document / permit / ID" = DE: "Pass / Ausweis / Dokument"
+  CH: "pass / uswis / dokument / papier" = DE: "Pass / Ausweis"
 
   SCHOOL / EDUCATION:
-  FR: "école / éducation / scolarité / enseignement" = DE: "Schule / Bildung"
-  IT: "scuola / istruzione / educazione / formazione" = DE: "Schule / Bildung"
-  EN: "school / education / learning" = DE: "Schule / Bildung"
+  FR: "école / éducation / scolarité / enseignement / classe" = DE: "Schule / Bildung"
+  IT: "scuola / istruzione / educazione / formazione / classe" = DE: "Schule / Bildung"
+  EN: "school / education / learning / class / kindergarten" = DE: "Schule / Bildung"
+  CH: "schuel / schul / bildung / chind / kindergarte" = DE: "Schule / Bildung"
 
   SOCIAL / HEALTH:
-  FR: "social / santé / aide / assistance" = DE: "Soziales / Gesundheit / Hilfe"
-  IT: "sociale / salute / aiuto / assistenza" = DE: "Soziales / Gesundheit / Hilfe"
-  EN: "social / health / help / assistance" = DE: "Soziales / Gesundheit / Hilfe"
+  FR: "social / santé / aide / assistance / soins" = DE: "Soziales / Gesundheit / Hilfe"
+  IT: "sociale / salute / aiuto / assistenza / cure" = DE: "Soziales / Gesundheit / Hilfe"
+  EN: "social / health / help / assistance / welfare" = DE: "Soziales / Gesundheit / Hilfe"
+  CH: "sozials / gsundheit / hilf / fürsorge" = DE: "Soziales / Gesundheit"
 
   ENVIRONMENT / ENERGY:
-  FR: "environnement / énergie / nature" = DE: "Umwelt / Energie / Natur"
-  IT: "ambiente / energia / natura" = DE: "Umwelt / Energie / Natur"
-  EN: "environment / energy / nature" = DE: "Umwelt / Energie / Natur"
+  FR: "environnement / énergie / nature / eau" = DE: "Umwelt / Energie / Natur / Wasser"
+  IT: "ambiente / energia / natura / acqua" = DE: "Umwelt / Energie / Natur / Wasser"
+  EN: "environment / energy / nature / water" = DE: "Umwelt / Energie / Natur / Wasser"
+  CH: "umwelt / energie / natur / wasser" = DE: "Umwelt / Energie"
 
   CULTURE / LEISURE:
-  FR: "culture / loisirs / sport / bibliothèque" = DE: "Kultur / Freizeit / Sport / Bibliothek"
-  IT: "cultura / tempo libero / sport / biblioteca" = DE: "Kultur / Freizeit / Sport / Bibliothek"
-  EN: "culture / leisure / sport / library" = DE: "Kultur / Freizeit / Sport / Bibliothek"
+  FR: "culture / loisirs / sport / bibliothèque / musée" = DE: "Kultur / Freizeit / Sport / Bibliothek"
+  IT: "cultura / tempo libero / sport / biblioteca / museo" = DE: "Kultur / Freizeit / Sport / Bibliothek"
+  EN: "culture / leisure / sport / library / museum" = DE: "Kultur / Freizeit / Sport / Bibliothek"
+  CH: "kultur / freiziit / sport / bibliothek" = DE: "Kultur / Freizeit"
 
 - Only use information from the provided website content
 - Never speculate, guess, or use external knowledge
 - If you can partially answer, give the answer — then stop
 - Only if you cannot answer at all, respond with the equivalent of "Dazu habe ich leider keine Information. Bitte nutzen Sie die Kontaktangaben auf dieser Website." translated into the response language
 - Never explain what you know or don't know
-- Contact information such as address, phone number and email are always available in the website content — always use them when asked
+- Contact information such as address, phone number and email are always available — always use them when asked
 
 FORMAT RULES:
 - No bullet points unless listing 3 or more items that truly require them
@@ -163,8 +206,8 @@ FORMAT RULES:
 LINKS:
 - Only include a link if it appears EXACTLY in the VERIFIED LINKS section of the context
 - Never construct, modify, or guess any URL — not even small changes
-- Only add a link if the user would clearly benefit from visiting that page — for example to fill out a form, download a document, find contact details, or get more specific information than you could provide
-- Do NOT add a link if the answer is already complete and no further action on a webpage is needed
+- Only add a link if the user would clearly benefit from visiting that page
+- Do NOT add a link if the answer is already complete
 - If a link is appropriate, add it on a new line using the correct prefix for the response language:
   German: "Mehr Informationen: https://..."
   French: "Plus d'informations: https://..."
@@ -176,7 +219,7 @@ LINKS:
     messages: [
       {
         role: "user",
-        content: `Website-Kontext:\n${safeContext}\n\nFrage: ${message}`,
+        content: `Website-Kontext:\n${FIXED_INFO}\n\n${safeContext}\n\nFrage: ${message}`,
       },
     ],
   });
