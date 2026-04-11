@@ -23,10 +23,7 @@
     justify-content: center;
     transition: transform 0.2s, box-shadow 0.2s;
   }
-  #chatbot-btn:hover {
-    transform: scale(1.07);
-    box-shadow: 0 6px 20px rgba(27,23,255,0.45);
-  }
+  #chatbot-btn:hover { transform: scale(1.07); box-shadow: 0 6px 20px rgba(27,23,255,0.45); }
   #chatbot-btn svg { width: 26px; height: 26px; }
   #chatbot-box {
     position: fixed;
@@ -132,46 +129,15 @@
     gap: 4px;
     background: #f7f8fc;
   }
-  .msg-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-bottom: 8px;
-  }
+  .msg-wrapper { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
   .msg-wrapper.user { align-items: flex-end; }
   .msg-wrapper.bot { align-items: flex-start; }
-  .msg {
-    max-width: 82%;
-    padding: 11px 15px;
-    border-radius: 16px;
-    font-size: 14px;
-    line-height: 1.6;
-  }
-  .msg.bot {
-    background: #FFFFFF;
-    border: 1px solid #e8eaf0;
-    border-bottom-left-radius: 4px;
-    color: #000000;
-  }
-  .msg.user {
-    background: #1B17FF;
-    color: #FFFFFF;
-    border-bottom-right-radius: 4px;
-  }
+  .msg { max-width: 82%; padding: 11px 15px; border-radius: 16px; font-size: 14px; line-height: 1.6; }
+  .msg.bot { background: #FFFFFF; border: 1px solid #e8eaf0; border-bottom-left-radius: 4px; color: #000000; }
+  .msg.user { background: #1B17FF; color: #FFFFFF; border-bottom-right-radius: 4px; }
   .msg a { color: #1B17FF; text-decoration: underline; word-break: break-word; }
-  .msg-time {
-    font-size: 10px;
-    color: #b0b3c6;
-    padding: 0 4px;
-  }
-  .msg-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 2px;
-  }
-
-  /* Daumen Buttons — Rahmen-Stil, füllt sich schwarz bei Klick */
+  .msg-time { font-size: 10px; color: #b0b3c6; padding: 0 4px; }
+  .msg-actions { display: flex; align-items: center; gap: 6px; padding: 0 2px; }
   .thumb-btn {
     background: none;
     border: 1.5px solid #c0c3d0;
@@ -185,32 +151,11 @@
     transition: border-color 0.2s, background 0.2s;
     padding: 0;
   }
-  .thumb-btn svg {
-    width: 13px;
-    height: 13px;
-    fill: none;
-    stroke: #c0c3d0;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: stroke 0.2s, fill 0.2s;
-  }
-  .thumb-btn:hover {
-    border-color: #000000;
-  }
-  .thumb-btn:hover svg {
-    stroke: #000000;
-  }
-  .thumb-btn.active {
-    background: #000000;
-    border-color: #000000;
-  }
-  .thumb-btn.active svg {
-    stroke: #ffffff;
-    fill: #ffffff;
-  }
-
-  /* Lautsprecher Button */
+  .thumb-btn svg { width: 13px; height: 13px; fill: none; stroke: #c0c3d0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s, fill 0.2s; }
+  .thumb-btn:hover { border-color: #000000; }
+  .thumb-btn:hover svg { stroke: #000000; }
+  .thumb-btn.active { background: #000000; border-color: #000000; }
+  .thumb-btn.active svg { stroke: #ffffff; fill: #ffffff; }
   .speak-btn {
     background: none;
     border: 1.5px solid #c0c3d0;
@@ -224,30 +169,123 @@
     transition: border-color 0.2s, background 0.2s;
     padding: 0;
   }
-  .speak-btn svg {
-    width: 13px;
-    height: 13px;
-    fill: none;
-    stroke: #c0c3d0;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: stroke 0.2s, fill 0.2s;
-  }
+  .speak-btn svg { width: 13px; height: 13px; fill: none; stroke: #c0c3d0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s; }
   .speak-btn:hover { border-color: #000000; }
   .speak-btn:hover svg { stroke: #000000; }
-  .speak-btn.speaking {
-    background: #000000;
-    border-color: #000000;
-    animation: speakPulse 1s infinite;
-  }
+  .speak-btn.speaking { background: #000000; border-color: #000000; animation: speakPulse 1s infinite; }
   .speak-btn.speaking svg { stroke: #ffffff; }
   @keyframes speakPulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0.3); }
     50% { box-shadow: 0 0 0 4px rgba(0,0,0,0); }
   }
 
-  #chatbot-footer { background: #FFFFFF; border-top: 1px solid #e8eaf0; flex-shrink: 0; }
+  /* ── Voice Recorder Overlay ─────────────────────────────────────── */
+  #voice-recorder {
+    display: none;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #FFFFFF;
+    border-top: 1px solid #e8eaf0;
+    padding: 16px;
+    z-index: 100;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+  }
+  #voice-recorder.active { display: flex; }
+
+  #voice-waveform {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f7f8fc;
+    border-radius: 12px;
+    padding: 10px 14px;
+    border: 1.5px solid #e8eaf0;
+  }
+  #voice-waveform-bars {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 32px;
+  }
+  .waveform-bar {
+    flex: 1;
+    background: #1B17FF;
+    border-radius: 3px;
+    animation: waveAnim 0.8s ease-in-out infinite;
+    min-height: 4px;
+  }
+  .waveform-bar:nth-child(1) { animation-delay: 0.0s; }
+  .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+  .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+  .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+  .waveform-bar:nth-child(5) { animation-delay: 0.2s; }
+  .waveform-bar:nth-child(6) { animation-delay: 0.1s; }
+  .waveform-bar:nth-child(7) { animation-delay: 0.0s; }
+  .waveform-bar:nth-child(8) { animation-delay: 0.15s; }
+  .waveform-bar:nth-child(9) { animation-delay: 0.25s; }
+  .waveform-bar:nth-child(10) { animation-delay: 0.05s; }
+  .waveform-bar:nth-child(11) { animation-delay: 0.35s; }
+  .waveform-bar:nth-child(12) { animation-delay: 0.1s; }
+  @keyframes waveAnim {
+    0%, 100% { height: 6px; }
+    50% { height: 28px; }
+  }
+  #voice-timer {
+    font-size: 13px;
+    font-weight: 600;
+    color: #000000;
+    min-width: 36px;
+    text-align: right;
+  }
+  #voice-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #voice-cancel {
+    background: none;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  #voice-cancel:hover { border-color: #e53935; background: #fff0f0; }
+  #voice-cancel svg { width: 16px; height: 16px; stroke: #666; }
+  #voice-cancel:hover svg { stroke: #e53935; }
+
+  #voice-status {
+    font-size: 12px;
+    color: #b0b3c6;
+    text-align: center;
+    flex: 1;
+  }
+  #voice-confirm {
+    background: #1B17FF;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.1s;
+  }
+  #voice-confirm:hover { background: #0e0acc; }
+  #voice-confirm:active { transform: scale(0.95); }
+  #voice-confirm svg { width: 18px; height: 18px; stroke: white; stroke-width: 2.5; }
+
+  #chatbot-footer { background: #FFFFFF; border-top: 1px solid #e8eaf0; flex-shrink: 0; position: relative; }
   #chatbot-input-row { display: flex; gap: 8px; padding: 12px; align-items: center; }
   #chatbot-input {
     flex: 1;
@@ -278,32 +316,19 @@
   #chatbot-send:hover, #askly-mic-btn:hover { background: #0e0acc; }
   #chatbot-send:active, #askly-mic-btn:active { transform: scale(0.95); }
   #chatbot-send:disabled { opacity: 0.45; cursor: not-allowed; }
-  #askly-mic-btn.listening { background: #e53935; animation: micPulse 1s infinite; }
+  #askly-mic-btn.recording { background: #e53935; animation: micPulse 1s infinite; }
   @keyframes micPulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0.45); }
     50% { box-shadow: 0 0 0 6px rgba(229,57,53,0); }
   }
-  #chatbot-branding {
-    text-align: center;
-    padding: 4px 0 8px;
-    font-size: 11px;
-    color: #b0b3c6;
-    letter-spacing: 0.02em;
-  }
+  #chatbot-branding { text-align: center; padding: 4px 0 8px; font-size: 11px; color: #b0b3c6; letter-spacing: 0.02em; }
   #chatbot-branding a { color: #1B17FF; font-weight: 600; text-decoration: none; }
   #chatbot-branding a:hover { text-decoration: underline; }
   @keyframes bounce {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
     30% { transform: translateY(-6px); opacity: 1; }
   }
-  .dot {
-    display: inline-block;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #b0b3c6;
-    margin: 0 2px;
-    animation: bounce 1.2s infinite ease-in-out;
-  }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #b0b3c6; margin: 0 2px; animation: bounce 1.2s infinite ease-in-out; }
   .dot:nth-child(2) { animation-delay: 0.2s; }
   .dot:nth-child(3) { animation-delay: 0.4s; }
   @media (max-height: 750px) { #chatbot-box { height: 85vh; bottom: 80px; } }
@@ -335,13 +360,52 @@
       <button id="chatbot-close">✕</button>
     </div>
   </div>
+
   <div id="chatbot-messages">
     <div class="msg-wrapper bot">
       <div class="msg bot" id="welcome-msg"></div>
       <span class="msg-time" id="welcome-time"></span>
     </div>
   </div>
+
   <div id="chatbot-footer">
+    <!-- Voice Recorder Overlay -->
+    <div id="voice-recorder">
+      <div id="voice-waveform">
+        <div id="voice-waveform-bars">
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+        </div>
+        <span id="voice-timer">0:00</span>
+      </div>
+      <div id="voice-actions">
+        <!-- Cancel -->
+        <button id="voice-cancel" title="Abbrechen">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <span id="voice-status">Aufnahme läuft...</span>
+        <!-- Confirm -->
+        <button id="voice-confirm" title="Senden">
+          <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <div id="chatbot-input-row">
       <input id="chatbot-input" type="text" />
       <button id="askly-mic-btn">
@@ -395,6 +459,127 @@
   let currentSpeech = null;
   let currentSpeakBtn = null;
 
+  // ── Voice Recorder State ──────────────────────────────────────────
+  let asklyRecognition = null;
+  let asklyListening = false;
+  let voiceTranscript = '';
+  let voiceTimerInterval = null;
+  let voiceSeconds = 0;
+
+  const micBtn = document.getElementById('askly-mic-btn');
+  const voiceRecorder = document.getElementById('voice-recorder');
+  const voiceTimer = document.getElementById('voice-timer');
+  const voiceCancel = document.getElementById('voice-cancel');
+  const voiceConfirm = document.getElementById('voice-confirm');
+  const voiceStatus = document.getElementById('voice-status');
+
+  function formatTime(s) {
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function startVoiceTimer() {
+    voiceSeconds = 0;
+    voiceTimer.textContent = '0:00';
+    voiceTimerInterval = setInterval(() => {
+      voiceSeconds++;
+      voiceTimer.textContent = formatTime(voiceSeconds);
+    }, 1000);
+  }
+
+  function stopVoiceTimer() {
+    clearInterval(voiceTimerInterval);
+    voiceTimerInterval = null;
+  }
+
+  function showRecorder() {
+    voiceRecorder.classList.add('active');
+    micBtn.classList.add('recording');
+    voiceStatus.textContent = 'Aufnahme läuft...';
+    voiceTranscript = '';
+    startVoiceTimer();
+  }
+
+  function hideRecorder() {
+    voiceRecorder.classList.remove('active');
+    micBtn.classList.remove('recording');
+    stopVoiceTimer();
+    voiceSeconds = 0;
+    voiceTimer.textContent = '0:00';
+    voiceTranscript = '';
+  }
+
+  function startVoiceRecognition() {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert('Spracheingabe wird nur in Chrome/Edge unterstützt.');
+      return;
+    }
+    const micLang = MIC_LANG_CODES[selectedLanguage] || 'de-CH';
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    asklyRecognition = new SpeechRecognition();
+    asklyRecognition.lang = micLang;
+    asklyRecognition.interimResults = true;
+    asklyRecognition.continuous = true;
+    asklyRecognition.maxAlternatives = 1;
+
+    asklyRecognition.onstart = () => {
+      asklyListening = true;
+      showRecorder();
+    };
+
+    asklyRecognition.onresult = (event) => {
+      let interim = '';
+      let final = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          final += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      if (final) voiceTranscript += final;
+      voiceStatus.textContent = voiceTranscript + interim || 'Aufnahme läuft...';
+    };
+
+    asklyRecognition.onerror = () => {
+      asklyListening = false;
+      hideRecorder();
+    };
+
+    asklyRecognition.onend = () => {
+      asklyListening = false;
+    };
+
+    asklyRecognition.start();
+  }
+
+  function stopAndCancel() {
+    if (asklyRecognition) asklyRecognition.stop();
+    asklyListening = false;
+    hideRecorder();
+  }
+
+  function stopAndConfirm() {
+    if (asklyRecognition) asklyRecognition.stop();
+    asklyListening = false;
+    hideRecorder();
+    if (voiceTranscript.trim()) {
+      document.getElementById('chatbot-input').value = voiceTranscript.trim();
+      send();
+    }
+  }
+
+  micBtn.onclick = () => {
+    if (asklyListening) {
+      stopAndCancel();
+    } else {
+      startVoiceRecognition();
+    }
+  };
+
+  voiceCancel.onclick = stopAndCancel;
+  voiceConfirm.onclick = stopAndConfirm;
+
+  // ── Zeitstempel ───────────────────────────────────────────────────
   function getTimestamp() {
     const now = new Date();
     return now.toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit' })
@@ -423,38 +608,23 @@
   // ── Vorlesen ──────────────────────────────────────────────────────
   function speakText(text, btn) {
     if (!window.speechSynthesis) return;
-    // Stopp wenn aktuell läuft
     if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
-      if (currentSpeakBtn) {
-        currentSpeakBtn.classList.remove('speaking');
-        currentSpeakBtn = null;
-      }
+      if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking'); currentSpeakBtn = null; }
       if (btn === currentSpeakBtn || btn.classList.contains('speaking')) return;
     }
     const cleanText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = TTS_LANG_CODES[selectedLanguage] || 'de-DE';
     utterance.rate = 1.0;
-    utterance.onstart = () => {
-      btn.classList.add('speaking');
-      currentSpeakBtn = btn;
-    };
-    utterance.onend = () => {
-      btn.classList.remove('speaking');
-      currentSpeakBtn = null;
-      currentSpeech = null;
-    };
-    utterance.onerror = () => {
-      btn.classList.remove('speaking');
-      currentSpeakBtn = null;
-      currentSpeech = null;
-    };
+    utterance.onstart = () => { btn.classList.add('speaking'); currentSpeakBtn = btn; };
+    utterance.onend = () => { btn.classList.remove('speaking'); currentSpeakBtn = null; currentSpeech = null; };
+    utterance.onerror = () => { btn.classList.remove('speaking'); currentSpeakBtn = null; currentSpeech = null; };
     currentSpeech = utterance;
     window.speechSynthesis.speak(utterance);
   }
 
-  // ── Nachricht hinzufügen ──────────────────────────────────────────
+  // ── Nachrichten ───────────────────────────────────────────────────
   function addMsg(html, type, withActions = false) {
     const box = document.getElementById('chatbot-messages');
     const wrapper = document.createElement('div');
@@ -474,31 +644,19 @@
       const actions = document.createElement('div');
       actions.className = 'msg-actions';
 
-      // Daumen hoch — SVG Icon
       const thumbUp = document.createElement('button');
       thumbUp.className = 'thumb-btn';
       thumbUp.title = 'Hilfreich';
       thumbUp.innerHTML = `<svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
 
-      // Daumen runter — SVG Icon
       const thumbDown = document.createElement('button');
       thumbDown.className = 'thumb-btn';
       thumbDown.title = 'Nicht hilfreich';
       thumbDown.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
 
-      // Gegenseitig exklusiv
-      thumbUp.onclick = () => {
-        const wasActive = thumbUp.classList.contains('active');
-        thumbUp.classList.toggle('active', !wasActive);
-        thumbDown.classList.remove('active');
-      };
-      thumbDown.onclick = () => {
-        const wasActive = thumbDown.classList.contains('active');
-        thumbDown.classList.toggle('active', !wasActive);
-        thumbUp.classList.remove('active');
-      };
+      thumbUp.onclick = () => { thumbUp.classList.toggle('active', !thumbUp.classList.contains('active')); thumbDown.classList.remove('active'); };
+      thumbDown.onclick = () => { thumbDown.classList.toggle('active', !thumbDown.classList.contains('active')); thumbUp.classList.remove('active'); };
 
-      // Lautsprecher — SVG Icon
       const speakBtn = document.createElement('button');
       speakBtn.className = 'speak-btn';
       speakBtn.title = 'Vorlesen';
@@ -593,38 +751,10 @@
     document.getElementById('chatbot-box').classList.remove('open');
     langDropdown.classList.remove('open');
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (asklyListening) stopAndCancel();
   };
   document.getElementById('chatbot-send').onclick = send;
   document.getElementById('chatbot-input').onkeydown = e => { if (e.key === 'Enter') send(); };
-
-  // ── Spracheingabe ─────────────────────────────────────────────────
-  let asklyRecognition = null;
-  let asklyListening = false;
-  const micBtn = document.getElementById('askly-mic-btn');
-
-  function toggleMic() {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert('Spracheingabe wird nur in Chrome/Edge unterstützt.');
-      return;
-    }
-    if (asklyListening) { asklyRecognition.stop(); return; }
-    const micLang = MIC_LANG_CODES[selectedLanguage] || 'de-CH';
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    asklyRecognition = new SpeechRecognition();
-    asklyRecognition.lang = micLang;
-    asklyRecognition.interimResults = false;
-    asklyRecognition.maxAlternatives = 1;
-    asklyRecognition.onstart = () => { asklyListening = true; micBtn.classList.add('listening'); };
-    asklyRecognition.onresult = (event) => {
-      document.getElementById('chatbot-input').value = event.results[0][0].transcript;
-      send();
-    };
-    asklyRecognition.onerror = () => { asklyListening = false; micBtn.classList.remove('listening'); };
-    asklyRecognition.onend = () => { asklyListening = false; micBtn.classList.remove('listening'); };
-    asklyRecognition.start();
-  }
-
-  micBtn.onclick = toggleMic;
 </script>
 </body>
 </html>
