@@ -4,7 +4,18 @@ import Anthropic from "@anthropic-ai/sdk";
 import * as cheerio from "cheerio";
 
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: [
+    'https://asklyteam-beep.github.io',
+    'https://www.meggen.ch',
+    'http://localhost:3000',
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+  ],
+  methods: ['GET', 'POST'],
+}));
+
 app.use(express.json());
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -110,7 +121,6 @@ async function scrapePage(url: string): Promise<string> {
 
     $("script, style, noscript, iframe, head, nav").remove();
 
-    // Kontaktdaten explizit extrahieren und vorne anhängen
     const contactInfo: string[] = [];
     $("*").each((_: number, el: any) => {
       const text = $(el).text().trim();
