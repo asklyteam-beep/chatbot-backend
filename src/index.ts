@@ -31,10 +31,9 @@ app.post("/api/chat", async (req, res) => {
     res.status(400).json({ error: "Field 'message' is required and must be a string." });
     return;
   }
-  if (!context || typeof context !== "string") {
-    res.status(400).json({ error: "Field 'context' is required and must be a string." });
-    return;
-  }
+
+  // Context ist optional — leerer string wird akzeptiert
+  const safeContext = (typeof context === "string") ? context : "";
 
   const languageInstructions: Record<string, string> = {
     DE: "Always respond in standard German (Hochdeutsch).",
@@ -100,7 +99,7 @@ LINKS:
     messages: [
       {
         role: "user",
-        content: `Website-Kontext:\n${context}\n\nFrage: ${message}`,
+        content: `Website-Kontext:\n${safeContext}\n\nFrage: ${message}`,
       },
     ],
   });
