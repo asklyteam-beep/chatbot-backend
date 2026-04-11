@@ -138,8 +138,6 @@
   .msg a { color: #1B17FF; text-decoration: underline; word-break: break-word; }
   .msg-time { font-size: 10px; color: #b0b3c6; padding: 0 4px; }
   .msg-actions { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
-
-  /* Daumen + Lautsprecher — nur Icon, kein Rahmen */
   .thumb-btn, .speak-btn {
     background: none;
     border: none;
@@ -162,16 +160,8 @@
   }
   .thumb-btn:hover svg { stroke: #000000; }
   .speak-btn:hover svg { stroke: #000000; }
-  .thumb-btn:hover { transform: scale(1.15); }
-  .speak-btn:hover { transform: scale(1.15); }
-
-  /* Aktiv-Zustand Daumen: Icon wird schwarz ausgefüllt */
-  .thumb-btn.active svg {
-    stroke: #000000;
-    fill: #000000;
-  }
-
-  /* Lautsprecher aktiv: pulsiert */
+  .thumb-btn:hover, .speak-btn:hover { transform: scale(1.15); }
+  .thumb-btn.active svg { stroke: #000000; fill: #000000; }
   .speak-btn.speaking svg { stroke: #1B17FF; }
   .speak-btn.speaking { animation: speakPulse 1s infinite; }
   @keyframes speakPulse {
@@ -179,7 +169,7 @@
     50% { transform: scale(1.2); }
   }
 
-  /* ── Voice Recorder Overlay ─────────────────────────────────────── */
+  /* ── Voice Recorder ──────────────────────────────────────────────── */
   #voice-recorder {
     display: none;
     position: absolute;
@@ -215,24 +205,8 @@
     flex: 1;
     background: #1B17FF;
     border-radius: 3px;
-    animation: waveAnim 0.8s ease-in-out infinite;
-    min-height: 4px;
-  }
-  .waveform-bar:nth-child(1)  { animation-delay: 0.00s; }
-  .waveform-bar:nth-child(2)  { animation-delay: 0.10s; }
-  .waveform-bar:nth-child(3)  { animation-delay: 0.20s; }
-  .waveform-bar:nth-child(4)  { animation-delay: 0.30s; }
-  .waveform-bar:nth-child(5)  { animation-delay: 0.20s; }
-  .waveform-bar:nth-child(6)  { animation-delay: 0.10s; }
-  .waveform-bar:nth-child(7)  { animation-delay: 0.00s; }
-  .waveform-bar:nth-child(8)  { animation-delay: 0.15s; }
-  .waveform-bar:nth-child(9)  { animation-delay: 0.25s; }
-  .waveform-bar:nth-child(10) { animation-delay: 0.05s; }
-  .waveform-bar:nth-child(11) { animation-delay: 0.35s; }
-  .waveform-bar:nth-child(12) { animation-delay: 0.10s; }
-  @keyframes waveAnim {
-    0%, 100% { height: 6px; }
-    50% { height: 28px; }
+    height: 4px;
+    transition: height 0.08s ease;
   }
   #voice-timer {
     font-size: 13px;
@@ -259,7 +233,7 @@
     transition: border-color 0.2s, background 0.2s;
   }
   #voice-cancel:hover { border-color: #e53935; background: #fff0f0; }
-  #voice-cancel svg { width: 16px; height: 16px; stroke: #666; stroke-width: 2; stroke-linecap: round; }
+  #voice-cancel svg { width: 16px; height: 16px; stroke: #666; stroke-width: 2; stroke-linecap: round; fill: none; }
   #voice-cancel:hover svg { stroke: #e53935; }
   #voice-status {
     font-size: 12px;
@@ -391,7 +365,7 @@
       </div>
       <div id="voice-actions">
         <button id="voice-cancel" title="Abbrechen">
-          <svg viewBox="0 0 24 24" fill="none">
+          <svg viewBox="0 0 24 24">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
@@ -465,6 +439,10 @@
   let voiceTimerInterval = null;
   let voiceSeconds = 0;
   let confirmPending = false;
+  let audioContext = null;
+  let analyser = null;
+  let micStream = null;
+  let animationFrame = null;
 
   const micBtn = document.getElementById('askly-mic-btn');
   const voiceRecorder = document.getElementById('voice-recorder');
@@ -472,6 +450,7 @@
   const voiceCancel = document.getElementById('voice-cancel');
   const voiceConfirm = document.getElementById('voice-confirm');
   const voiceStatus = document.getElementById('voice-status');
+  const waveformBars = document.querySelectorAll('.waveform-bar');
 
   function formatTime(s) {
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
@@ -491,6 +470,35 @@
     voiceTimerInterval = null;
   }
 
+  function startWaveformAnalysis(stream) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.5;
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    function draw() {
+      animationFrame = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArray);
+      const avg = dataArray.slice(0, 60).reduce((a, b) => a + b, 0) / 60;
+      waveformBars.forEach((bar, i) => {
+        const noise = Math.sin(Date.now() / 180 + i * 0.8) * 0.4 + 0.6;
+        const height = Math.max(4, Math.min(30, (avg / 128) * 32 * noise));
+        bar.style.height = height + 'px';
+      });
+    }
+    draw();
+  }
+
+  function stopWaveformAnalysis() {
+    if (animationFrame) { cancelAnimationFrame(animationFrame); animationFrame = null; }
+    if (audioContext) { audioContext.close(); audioContext = null; }
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    waveformBars.forEach(bar => { bar.style.height = '4px'; });
+  }
+
   function showRecorder() {
     voiceRecorder.classList.add('active');
     micBtn.classList.add('recording');
@@ -504,17 +512,25 @@
     voiceRecorder.classList.remove('active');
     micBtn.classList.remove('recording');
     stopVoiceTimer();
+    stopWaveformAnalysis();
     voiceSeconds = 0;
     voiceTimer.textContent = '0:00';
     voiceTranscript = '';
     confirmPending = false;
   }
 
-  function startVoiceRecognition() {
+  async function startVoiceRecognition() {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       alert('Spracheingabe wird nur in Chrome/Edge unterstützt.');
       return;
     }
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      startWaveformAnalysis(micStream);
+    } catch(e) {
+      console.warn('Mikrofon-Zugriff fehlgeschlagen:', e);
+    }
+
     const micLang = MIC_LANG_CODES[selectedLanguage] || 'de-CH';
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     asklyRecognition = new SpeechRecognition();
@@ -570,11 +586,11 @@
   function stopAndConfirm() {
     confirmPending = true;
     stopVoiceTimer();
+    stopWaveformAnalysis();
     voiceRecorder.classList.remove('active');
     micBtn.classList.remove('recording');
     if (asklyRecognition) {
       asklyRecognition.stop();
-      // onend wird aufgerufen → dort wird gesendet
     } else {
       hideRecorder();
     }
