@@ -183,7 +183,6 @@
   .thumb-btn:hover, .speak-btn:hover { transform: scale(1.15); }
   .thumb-btn.active svg { stroke: #000000; fill: #000000; }
 
-  /* Lautsprecher: speaking = läuft, paused = pausiert */
   .speak-btn.speaking svg { stroke: #1B17FF; }
   .speak-btn.speaking { animation: speakPulse 1s infinite; }
   .speak-btn.paused svg { stroke: #1B17FF; opacity: 0.5; }
@@ -194,7 +193,6 @@
     50% { transform: scale(1.2); }
   }
 
-  /* ── Voice Recorder ─────────────────────────────────────────────── */
   #voice-recorder {
     display: none;
     position: absolute;
@@ -322,7 +320,6 @@
   .dot:nth-child(2) { animation-delay: 0.2s; }
   .dot:nth-child(3) { animation-delay: 0.4s; }
 
-  /* ── Mobile: Bottom Sheet ──────────────────────────────────────── */
   @media (max-width: 480px) {
     #chatbot-box {
       width: 100vw;
@@ -481,11 +478,11 @@
   let selectedLanguage = 'AUTO';
   let currentSpeech = null;
   let currentSpeakBtn = null;
+  let currentSpeakText = '';  // Gespeicherter Text für Neustart nach Pause
   let clientCache = null;
   let clientCacheTime = 0;
   let isSending = false;
 
-  // ── XSS-Schutz ───────────────────────────────────────────────────
   function escapeHtml(str) {
     return String(str)
       .replace(/&/g, '&amp;')
@@ -502,7 +499,6 @@
     } catch { return false; }
   }
 
-  // ── Context laden ─────────────────────────────────────────────────
   async function loadContext() {
     if (clientCache && (Date.now() - clientCacheTime) < CLIENT_CACHE_TTL) {
       context = clientCache.text || '';
@@ -683,17 +679,49 @@
   applyLanguage('AUTO');
 
   // ── Vorlesen — Pause/Resume ───────────────────────────────────────
+  function startSpeech(cleanText, btn) {
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = TTS_LANG_CODES[selectedLanguage] || 'de-DE';
+    utterance.rate = 1.0;
+    utterance.onstart = () => {
+      btn.classList.add('speaking');
+      btn.classList.remove('paused');
+      btn.setAttribute('aria-label', 'Vorlesen pausieren');
+      currentSpeakBtn = btn;
+    };
+    utterance.onend = () => {
+      btn.classList.remove('speaking', 'paused');
+      btn.setAttribute('aria-label', 'Vorlesen');
+      currentSpeakBtn = null;
+      currentSpeech = null;
+      currentSpeakText = '';
+    };
+    utterance.onerror = () => {
+      btn.classList.remove('speaking', 'paused');
+      btn.setAttribute('aria-label', 'Vorlesen');
+      currentSpeakBtn = null;
+      currentSpeech = null;
+      currentSpeakText = '';
+    };
+    currentSpeech = utterance;
+    window.speechSynthesis.speak(utterance);
+  }
+
   function speakText(text, btn) {
     if (!window.speechSynthesis) return;
 
-    // Gleicher Button: Pause / Resume toggle
+    // Gleicher Button geklickt
     if (currentSpeakBtn === btn) {
       if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
+        // Pausiert → von vorne neu starten (resume unzuverlässig in Chrome)
+        window.speechSynthesis.cancel();
         btn.classList.remove('paused');
-        btn.classList.add('speaking');
-        btn.setAttribute('aria-label', 'Vorlesen pausieren');
+        const savedText = currentSpeakText;
+        setTimeout(() => {
+          if (savedText) startSpeech(savedText, btn);
+        }, 150);
       } else if (window.speechSynthesis.speaking) {
+        // Läuft → pausieren
         window.speechSynthesis.pause();
         btn.classList.remove('speaking');
         btn.classList.add('paused');
@@ -710,34 +738,14 @@
         currentSpeakBtn.setAttribute('aria-label', 'Vorlesen');
         currentSpeakBtn = null;
       }
+      currentSpeakText = '';
     }
 
     const cleanText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000);
     if (!cleanText) return;
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = TTS_LANG_CODES[selectedLanguage] || 'de-DE';
-    utterance.rate = 1.0;
-    utterance.onstart = () => {
-      btn.classList.add('speaking');
-      btn.classList.remove('paused');
-      btn.setAttribute('aria-label', 'Vorlesen pausieren');
-      currentSpeakBtn = btn;
-    };
-    utterance.onend = () => {
-      btn.classList.remove('speaking', 'paused');
-      btn.setAttribute('aria-label', 'Vorlesen');
-      currentSpeakBtn = null;
-      currentSpeech = null;
-    };
-    utterance.onerror = () => {
-      btn.classList.remove('speaking', 'paused');
-      btn.setAttribute('aria-label', 'Vorlesen');
-      currentSpeakBtn = null;
-      currentSpeech = null;
-    };
-    currentSpeech = utterance;
-    window.speechSynthesis.speak(utterance);
+    currentSpeakText = cleanText; // Text speichern für Neustart nach Pause
+    startSpeech(cleanText, btn);
   }
 
   // ── Nachrichten ───────────────────────────────────────────────────
@@ -815,7 +823,6 @@
     ).join('<br>');
   }
 
-  // ── Senden ────────────────────────────────────────────────────────
   async function send() {
     if (isSending) return;
     const input = document.getElementById('chatbot-input');
@@ -890,6 +897,7 @@
       document.getElementById('chatbot-box').classList.remove('open');
       langDropdown.classList.remove('open');
       if (window.speechSynthesis) window.speechSynthesis.cancel();
+      if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking', 'paused'); currentSpeakBtn = null; currentSpeakText = ''; }
       if (asklyListening) stopAndCancel();
     }
   });
@@ -908,7 +916,7 @@
     document.getElementById('chatbot-box').classList.remove('open');
     langDropdown.classList.remove('open');
     if (window.speechSynthesis) window.speechSynthesis.cancel();
-    if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking', 'paused'); currentSpeakBtn = null; }
+    if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking', 'paused'); currentSpeakBtn = null; currentSpeakText = ''; }
     if (asklyListening) stopAndCancel();
   };
 
