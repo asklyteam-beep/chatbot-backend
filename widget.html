@@ -182,8 +182,13 @@
   .speak-btn:hover svg, .speak-btn:active svg { stroke: #000000; }
   .thumb-btn:hover, .speak-btn:hover { transform: scale(1.15); }
   .thumb-btn.active svg { stroke: #000000; fill: #000000; }
+
+  /* Lautsprecher: speaking = läuft, paused = pausiert */
   .speak-btn.speaking svg { stroke: #1B17FF; }
   .speak-btn.speaking { animation: speakPulse 1s infinite; }
+  .speak-btn.paused svg { stroke: #1B17FF; opacity: 0.5; }
+  .speak-btn.paused { animation: none; }
+
   @keyframes speakPulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.2); }
@@ -328,12 +333,7 @@
       border-radius: 20px 20px 0 0;
       box-shadow: 0 -4px 30px rgba(0,0,0,0.15);
     }
-    #chatbot-btn {
-      bottom: 16px;
-      right: 16px;
-      width: 52px;
-      height: 52px;
-    }
+    #chatbot-btn { bottom: 16px; right: 16px; width: 52px; height: 52px; }
     #chatbot-header {
       padding: 16px 16px 14px;
       padding-top: max(16px, env(safe-area-inset-top));
@@ -342,17 +342,13 @@
       padding: 10px 12px;
       padding-bottom: max(10px, env(safe-area-inset-bottom));
     }
-    #chatbot-branding {
-      padding-bottom: max(8px, env(safe-area-inset-bottom));
-    }
+    #chatbot-branding { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
     .msg { max-width: 88%; font-size: 15px; }
   }
-
   @media (max-width: 380px) {
     #chatbot-box { height: 92vh; }
-    #chatbot-input { font-size: 16px; } /* Verhindert iOS Auto-Zoom */
+    #chatbot-input { font-size: 16px; }
   }
-
   @media (max-height: 650px) and (max-width: 480px) {
     #chatbot-box { height: 96vh; }
   }
@@ -461,15 +457,11 @@
 </div>
 
 <script>
-  // ── Sicherheit: Nur erlaubter Backend-Host ────────────────────────
-  const ALLOWED_BACKEND = 'https://sweet-determination-production.up.railway.app';
-  const BACKEND = ALLOWED_BACKEND;
+  const BACKEND = 'https://sweet-determination-production.up.railway.app';
   const WEBSITE_URL = 'https://www.meggen.ch';
   const BOT_NAME = 'Gemeinde Meggen Assistent';
   const CLIENT_CACHE_TTL = 6 * 60 * 60 * 1000;
   const MAX_MESSAGE_LENGTH = 500;
-
-  // Erlaubte Sprachen — verhindert Injection via data-lang
   const ALLOWED_LANGUAGES = new Set(['AUTO', 'DE', 'FR', 'IT', 'EN', 'CH']);
 
   const UI_STRINGS = {
@@ -493,7 +485,7 @@
   let clientCacheTime = 0;
   let isSending = false;
 
-  // ── Sicherheit: XSS-Schutz ───────────────────────────────────────
+  // ── XSS-Schutz ───────────────────────────────────────────────────
   function escapeHtml(str) {
     return String(str)
       .replace(/&/g, '&amp;')
@@ -503,7 +495,6 @@
       .replace(/'/g, '&#039;');
   }
 
-  // Sichere URL-Validierung — nur http/https erlaubt
   function isSafeUrl(url) {
     try {
       const parsed = new URL(url);
@@ -521,20 +512,14 @@
     try {
       const url = new URL(`${BACKEND}/api/scrape`);
       url.searchParams.set('url', WEBSITE_URL);
-      const res = await fetch(url.toString(), {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-      });
+      const res = await fetch(url.toString(), { method: 'GET', headers: { 'Accept': 'application/json' } });
       if (!res.ok) throw new Error('Scrape failed');
       const data = await res.json();
       context = typeof data.text === 'string' ? data.text : '';
       siteUrl = typeof data.siteUrl === 'string' ? data.siteUrl : WEBSITE_URL;
       clientCache = data;
       clientCacheTime = Date.now();
-    } catch(e) {
-      context = '';
-      siteUrl = WEBSITE_URL;
-    }
+    } catch(e) { context = ''; siteUrl = WEBSITE_URL; }
   }
 
   // ── Voice Recorder ────────────────────────────────────────────────
@@ -557,20 +542,14 @@
   const voiceStatus = document.getElementById('voice-status');
   const waveformBars = document.querySelectorAll('.waveform-bar');
 
-  function formatTime(s) {
-    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-  }
+  function formatTime(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 
   function startVoiceTimer() {
     voiceSeconds = 0;
     voiceTimer.textContent = '0:00';
     voiceTimerInterval = setInterval(() => { voiceSeconds++; voiceTimer.textContent = formatTime(voiceSeconds); }, 1000);
   }
-
-  function stopVoiceTimer() {
-    clearInterval(voiceTimerInterval);
-    voiceTimerInterval = null;
-  }
+  function stopVoiceTimer() { clearInterval(voiceTimerInterval); voiceTimerInterval = null; }
 
   function startWaveformAnalysis(stream) {
     try {
@@ -587,12 +566,11 @@
         const avg = dataArray.slice(0, 60).reduce((a, b) => a + b, 0) / 60;
         waveformBars.forEach((bar, i) => {
           const noise = Math.sin(Date.now() / 180 + i * 0.8) * 0.4 + 0.6;
-          const height = Math.max(4, Math.min(30, (avg / 128) * 32 * noise));
-          bar.style.height = height + 'px';
+          bar.style.height = Math.max(4, Math.min(30, (avg / 128) * 32 * noise)) + 'px';
         });
       }
       draw();
-    } catch(e) { console.warn('Waveform analysis failed:', e); }
+    } catch(e) { console.warn('Waveform failed:', e); }
   }
 
   function stopWaveformAnalysis() {
@@ -647,13 +625,9 @@
     asklyRecognition.onresult = (event) => {
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          voiceTranscript += event.results[i][0].transcript + ' ';
-        } else {
-          interim += event.results[i][0].transcript;
-        }
+        if (event.results[i].isFinal) { voiceTranscript += event.results[i][0].transcript + ' '; }
+        else { interim += event.results[i][0].transcript; }
       }
-      // Sicherheit: Transcript auf 500 Zeichen begrenzen
       voiceTranscript = voiceTranscript.slice(0, MAX_MESSAGE_LENGTH);
       voiceStatus.textContent = (voiceTranscript + interim).trim().slice(0, 100) || 'Aufnahme läuft...';
     };
@@ -663,10 +637,7 @@
       if (confirmPending) {
         const text = voiceTranscript.trim().slice(0, MAX_MESSAGE_LENGTH);
         hideRecorder();
-        if (text) {
-          document.getElementById('chatbot-input').value = text;
-          send();
-        }
+        if (text) { document.getElementById('chatbot-input').value = text; send(); }
       }
     };
     asklyRecognition.start();
@@ -711,22 +682,60 @@
   document.getElementById('chatbot-title').textContent = BOT_NAME;
   applyLanguage('AUTO');
 
-  // ── Vorlesen ──────────────────────────────────────────────────────
+  // ── Vorlesen — Pause/Resume ───────────────────────────────────────
   function speakText(text, btn) {
     if (!window.speechSynthesis) return;
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-      if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking'); currentSpeakBtn = null; }
-      if (btn.classList.contains('speaking')) return;
+
+    // Gleicher Button: Pause / Resume toggle
+    if (currentSpeakBtn === btn) {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+        btn.classList.remove('paused');
+        btn.classList.add('speaking');
+        btn.setAttribute('aria-label', 'Vorlesen pausieren');
+      } else if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+        btn.classList.remove('speaking');
+        btn.classList.add('paused');
+        btn.setAttribute('aria-label', 'Vorlesen fortsetzen');
+      }
+      return;
     }
+
+    // Anderen Button stoppen
+    if (window.speechSynthesis.speaking || window.speechSynthesis.paused) {
+      window.speechSynthesis.cancel();
+      if (currentSpeakBtn) {
+        currentSpeakBtn.classList.remove('speaking', 'paused');
+        currentSpeakBtn.setAttribute('aria-label', 'Vorlesen');
+        currentSpeakBtn = null;
+      }
+    }
+
     const cleanText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000);
     if (!cleanText) return;
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = TTS_LANG_CODES[selectedLanguage] || 'de-DE';
     utterance.rate = 1.0;
-    utterance.onstart = () => { btn.classList.add('speaking'); currentSpeakBtn = btn; };
-    utterance.onend = () => { btn.classList.remove('speaking'); currentSpeakBtn = null; currentSpeech = null; };
-    utterance.onerror = () => { btn.classList.remove('speaking'); currentSpeakBtn = null; currentSpeech = null; };
+    utterance.onstart = () => {
+      btn.classList.add('speaking');
+      btn.classList.remove('paused');
+      btn.setAttribute('aria-label', 'Vorlesen pausieren');
+      currentSpeakBtn = btn;
+    };
+    utterance.onend = () => {
+      btn.classList.remove('speaking', 'paused');
+      btn.setAttribute('aria-label', 'Vorlesen');
+      currentSpeakBtn = null;
+      currentSpeech = null;
+    };
+    utterance.onerror = () => {
+      btn.classList.remove('speaking', 'paused');
+      btn.setAttribute('aria-label', 'Vorlesen');
+      currentSpeakBtn = null;
+      currentSpeech = null;
+    };
     currentSpeech = utterance;
     window.speechSynthesis.speak(utterance);
   }
@@ -739,7 +748,7 @@
 
     const bubble = document.createElement('div');
     bubble.className = 'msg ' + (type === 'user' ? 'user' : 'bot');
-    bubble.innerHTML = html; // HTML wird nur für Bot-Antworten verwendet (cleanReply sanitized)
+    bubble.innerHTML = html;
     wrapper.appendChild(bubble);
 
     const time = document.createElement('span');
@@ -769,7 +778,7 @@
       const speakBtn = document.createElement('button');
       speakBtn.className = 'speak-btn';
       speakBtn.title = 'Vorlesen';
-      speakBtn.setAttribute('aria-label', 'Antwort vorlesen');
+      speakBtn.setAttribute('aria-label', 'Vorlesen');
       speakBtn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
       speakBtn.onclick = () => speakText(bubble.innerHTML, speakBtn);
 
@@ -784,82 +793,58 @@
     return bubble;
   }
 
-  // ── Sicherheit: Reply sanitizen ───────────────────────────────────
   function cleanReply(text) {
     if (typeof text !== 'string') return '';
-
-    // Markdown entfernen
     text = text
       .replace(/\*\*(.*?)\*\*/g, '$1')
       .replace(/\*(.*?)\*/g, '$1')
       .replace(/#{1,3} /g, '');
 
-    // Zeilenumbrüche
-    const lines = text.split('\n');
-    const parts = [];
-
-    for (const line of lines) {
-      // URLs sicher verlinken — nur http/https
-      const linkedLine = line.replace(/(https?:\/\/[^\s<>"']+)/g, (url) => {
+    return text.split('\n').map(line =>
+      line.replace(/(https?:\/\/[^\s<>"']+)/g, (url) => {
         if (!isSafeUrl(url)) return escapeHtml(url);
         try {
           const { pathname } = new URL(url);
           const segments = pathname.split('/').filter(Boolean);
           const label = segments.length > 0
-            ? decodeURIComponent(segments[segments.length - 1])
-                .replace(/-/g, ' ')
-                .replace(/\b\w/g, c => c.toUpperCase())
+            ? decodeURIComponent(segments[segments.length - 1]).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
             : new URL(url).hostname;
           return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
         } catch { return escapeHtml(url); }
-      });
-      parts.push(linkedLine);
-    }
-
-    return parts.join('<br>');
+      })
+    ).join('<br>');
   }
 
-  // ── Nachricht senden ──────────────────────────────────────────────
+  // ── Senden ────────────────────────────────────────────────────────
   async function send() {
-    if (isSending) return; // Doppel-Submit verhindern
+    if (isSending) return;
     const input = document.getElementById('chatbot-input');
     const btn = document.getElementById('chatbot-send');
     const rawText = input.value.trim();
-
-    // Validierung
     if (!rawText) return;
-    if (rawText.length > MAX_MESSAGE_LENGTH) {
-      input.value = rawText.slice(0, MAX_MESSAGE_LENGTH);
-      return;
-    }
+    if (rawText.length > MAX_MESSAGE_LENGTH) { input.value = rawText.slice(0, MAX_MESSAGE_LENGTH); return; }
 
     const strings = UI_STRINGS[selectedLanguage] || UI_STRINGS['DE'];
     isSending = true;
     input.value = '';
     btn.disabled = true;
 
-    // User-Nachricht sicher anzeigen (escapeHtml)
     addMsg(escapeHtml(rawText), 'user');
     const loading = addMsg('<span class="dot"></span><span class="dot"></span><span class="dot"></span>', 'bot');
 
     try {
       const res = await fetch(`${BACKEND}/api/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
           message: rawText,
-          context: context,
-          siteUrl: siteUrl,
+          context,
+          siteUrl,
           language: ALLOWED_LANGUAGES.has(selectedLanguage) ? selectedLanguage : 'AUTO',
         }),
       });
-
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-
       if (typeof data.reply !== 'string') throw new Error('Invalid response');
       const replyHtml = cleanReply(data.reply || strings.noAnswer);
       loading.parentElement.remove();
@@ -888,12 +873,9 @@
     option.addEventListener('click', (e) => {
       e.stopPropagation();
       const lang = option.dataset.lang;
-      if (!ALLOWED_LANGUAGES.has(lang)) return; // Sicherheitscheck
+      if (!ALLOWED_LANGUAGES.has(lang)) return;
       selectedLanguage = lang;
-      document.querySelectorAll('.lang-option').forEach(o => {
-        o.classList.remove('active');
-        o.setAttribute('aria-selected', 'false');
-      });
+      document.querySelectorAll('.lang-option').forEach(o => { o.classList.remove('active'); o.setAttribute('aria-selected', 'false'); });
       option.classList.add('active');
       option.setAttribute('aria-selected', 'true');
       langDropdown.classList.remove('open');
@@ -903,7 +885,6 @@
 
   document.addEventListener('click', () => langDropdown.classList.remove('open'));
 
-  // Escape-Taste schliesst Widget
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       document.getElementById('chatbot-box').classList.remove('open');
@@ -927,15 +908,13 @@
     document.getElementById('chatbot-box').classList.remove('open');
     langDropdown.classList.remove('open');
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking', 'paused'); currentSpeakBtn = null; }
     if (asklyListening) stopAndCancel();
   };
 
   document.getElementById('chatbot-send').onclick = send;
   document.getElementById('chatbot-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      send();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   });
 </script>
 </body>
