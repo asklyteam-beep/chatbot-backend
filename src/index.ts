@@ -7,9 +7,9 @@ const app = express();
 
 // ── Sicherheit: Rate Limiting ─────────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 Minute
-const RATE_LIMIT_MAX_CHAT = 30;       // max 30 Chat-Anfragen pro Minute pro IP
-const RATE_LIMIT_MAX_SCRAPE = 5;      // max 5 Scrape-Anfragen pro Minute pro IP
+const RATE_LIMIT_WINDOW = 60 * 1000;
+const RATE_LIMIT_MAX_CHAT = 30;
+const RATE_LIMIT_MAX_SCRAPE = 5;
 
 function rateLimit(maxRequests: number) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -34,7 +34,6 @@ function rateLimit(maxRequests: number) {
   };
 }
 
-// Rate-Limit-Map periodisch bereinigen
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of rateLimitMap.entries()) {
@@ -54,7 +53,7 @@ const ALLOWED_ORIGINS = [
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin) { callback(null, true); return; } // Server-zu-Server
+    if (!origin) { callback(null, true); return; }
     if (ALLOWED_ORIGINS.includes(origin)) { callback(null, true); return; }
     callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
@@ -67,7 +66,7 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 // ── Body-Parser mit Limit ─────────────────────────────────────────
-app.use(express.json({ limit: '10kb' })); // Max 10KB Body
+app.use(express.json({ limit: '500kb' })); // ← GEÄNDERT von 10kb
 
 // ── Security Headers ──────────────────────────────────────────────
 app.use((_req: Request, res: Response, next: NextFunction) => {
@@ -96,7 +95,6 @@ function isValidUrl(urlString: string): { valid: boolean; parsed?: URL } {
   try {
     const parsed = new URL(urlString);
     if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) return { valid: false };
-    // Localhost und private IPs blockieren (SSRF-Schutz)
     const hostname = parsed.hostname.toLowerCase();
     if (
       hostname === 'localhost' ||
@@ -275,12 +273,11 @@ async function scrapePage(url: string): Promise<string> {
     });
     if (!fetchRes.ok) return "";
 
-    // Nur HTML verarbeiten
     const contentType = fetchRes.headers.get('content-type') || '';
     if (!contentType.includes('text/html')) return "";
 
     const html = await fetchRes.text();
-    if (html.length > 5_000_000) return ""; // Max 5MB HTML
+    if (html.length > 5_000_000) return "";
 
     const $ = cheerio.load(html);
     $("script, style, noscript, iframe, head, nav").remove();
@@ -429,7 +426,7 @@ app.get("/api/scrape", rateLimit(RATE_LIMIT_MAX_SCRAPE), async (req: Request, re
   }
 });
 
-// ── Cache Management (nur intern nutzbar) ─────────────────────────
+// ── Cache Management ──────────────────────────────────────────────
 const CACHE_ADMIN_KEY = process.env.CACHE_ADMIN_KEY || '';
 
 app.get("/api/cache/clear", (req: Request, res: Response): void => {
