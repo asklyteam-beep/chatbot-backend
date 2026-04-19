@@ -1,5 +1,5 @@
 [phases.install]
-cmds = ["npm ci", "npm rebuild better-sqlite3"]
+cmds = ["npm ci --ignore-scripts", "npm rebuild better-sqlite3"]
 
 [phases.build]
 cmds = ["npx tsc"]
