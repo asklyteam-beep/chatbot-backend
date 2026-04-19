@@ -1,0 +1,5 @@
+[phases.build]
+cmds = ["npm install", "./node_modules/.bin/tsc"]
+
+[phases.start]
+cmd = "node dist/index.js"
