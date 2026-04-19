@@ -1,5 +1,8 @@
-[phases.build]
-cmds = ["npm install", "./node_modules/.bin/tsc"]
+[phases.install]
+cmds = ["npm ci"]
 
-[phases.start]
+[phases.build]
+cmds = ["npx tsc"]
+
+[start]
 cmd = "node dist/index.js"
