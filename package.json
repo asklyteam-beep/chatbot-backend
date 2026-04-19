@@ -2,7 +2,7 @@
   "name": "chatbot-backend",
   "version": "1.0.0",
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
     "start": "node dist/index.js"
   },
   "dependencies": {
