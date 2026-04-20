@@ -130,56 +130,96 @@ FORMAT:
 LINKS:
 - Only use URLs from the VERIFIED LINKS section — never invent or modify URLs
 - Only include a link if the user would clearly benefit from visiting that page`;
+    EMERGENCY;
+    NUMBERS(Switzerland, always, use, these, never, other, countries);
+    -Police;
+    117
+        - Fire;
+    118
+        - Ambulance / Medical;
+    emergency: 144
+        - European;
+    emergency: 112
+        - Toxicology / Poison;
+    145
+        - REGA(air, rescue);
+    1414;
+    If;
+    the;
+    user;
+    describes;
+    any;
+    emergency;
+    situation(accident, crime, medical, fire), always;
+    immediately;
+    provide;
+    the;
+    relevant;
+    Swiss;
+    emergency;
+    number(s);
+    before;
+    anything;
+    `
 }
+
 // ── Origin-basierte Kunden-Authentifizierung ──────────────────────
-function getCustomerByOrigin(siteId, origin) {
-    if (!siteId)
-        return { customer: null, error: 'siteId is required.' };
-    if (!origin)
-        return { customer: null, error: 'Origin header is required.' };
-    // Localhost immer erlauben für Entwicklung
-    let isLocalhost = false;
-    try {
-        const h = new URL(origin).hostname;
-        isLocalhost = h === 'localhost' || h === '127.0.0.1' || h === '::1';
-    }
-    catch { }
-    const customer = (0, database_1.getCustomerById)(siteId);
-    if (!customer)
-        return { customer: null, error: 'Unknown siteId.' };
-    if (!isLocalhost && !(0, database_1.isOriginAllowed)(siteId, origin)) {
-        return { customer: null, error: 'Origin not allowed.' };
-    }
-    return { customer };
+function getCustomerByOrigin(siteId: string, origin: string | undefined): { customer: any | null; error?: string } {
+  if (!siteId) return { customer: null, error: 'siteId is required.' };
+  if (!origin) return { customer: null, error: 'Origin header is required.' };
+
+  // Localhost immer erlauben für Entwicklung
+  let isLocalhost = false;
+  try {
+    const h = new URL(origin).hostname;
+    isLocalhost = h === 'localhost' || h === '127.0.0.1' || h === '::1';
+  } catch {}
+
+  const customer = getCustomerById(siteId);
+  if (!customer) return { customer: null, error: 'Unknown siteId.' };
+
+  if (!isLocalhost && !isOriginAllowed(siteId, origin)) {
+    return { customer: null, error: 'Origin not allowed.' };
+  }
+
+  return { customer };
 }
+
 // ── Health Check ──────────────────────────────────────────────────
-app.get('/api', (_req, res) => {
-    res.json({ status: 'ok', service: 'Askly Backend' });
+app.get('/api', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', service: 'Askly Backend' });
 });
+
 // ── Widget.js ausliefern ──────────────────────────────────────────
-app.get('/widget.js', rateLimit(60), (req, res) => {
-    const siteId = sanitizeString(req.query.siteId, 50).toLowerCase();
-    if (!siteId) {
-        res.status(400).type('js').send('console.error("Askly: siteId parameter is required.");');
-        return;
-    }
-    const customer = (0, database_1.getCustomerById)(siteId);
-    if (!customer) {
-        res.status(404).type('js').send(`console.error("Askly: Unknown siteId '${siteId}'.");`);
-        return;
-    }
-    const config = {
-        siteId: customer.siteId,
-        botName: customer.botName,
-        primaryColor: customer.primaryColor,
-        language: customer.language,
-        backendUrl: `https://${req.get('host')}`,
-    };
-    // Widget-JS mit eingebetteter Konfiguration ausliefern
-    res.type('js');
-    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 Minuten cachen
-    res.send(generateWidgetJs(config));
-});
+app.get('/widget.js', rateLimit(60), (req: Request, res: Response): void => {
+  const siteId = sanitizeString(req.query.siteId, 50).toLowerCase();
+  if (!siteId) {
+    res.status(400).type('js').send('console.error("Askly: siteId parameter is required.");');
+    return;
+  }
+
+  const customer = getCustomerById(siteId);
+  if (!customer) {
+    res.status(404).type('js').send(`;
+    console.error("Askly: Unknown siteId '${siteId}'.");
+    `);
+    return;
+  }
+
+  const config = {
+    siteId:       customer.siteId,
+    botName:      customer.botName,
+    primaryColor: customer.primaryColor,
+    language:     customer.language,
+    backendUrl:   `;
+    https: ; //${req.get('host')}`,
+}
+;
+// Widget-JS mit eingebetteter Konfiguration ausliefern
+res.type('js');
+res.setHeader('Cache-Control', 'public, max-age=300'); // 5 Minuten cachen
+res.send(generateWidgetJs(config));
+;
 function generateWidgetJs(config) {
     return `(function() {
   'use strict';
