@@ -173,7 +173,7 @@ app.get('/widget.js', rateLimit(60), (req, res) => {
         botName: customer.botName,
         primaryColor: customer.primaryColor,
         language: customer.language,
-        backendUrl: `${req.protocol}://${req.get('host')}`,
+        backendUrl: `https://${req.get('host')}`,
     };
     // Widget-JS mit eingebetteter Konfiguration ausliefern
     res.type('js');
