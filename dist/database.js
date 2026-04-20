@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCustomer = getCustomer;
 exports.getCustomerById = getCustomerById;
+exports.isOriginAllowed = isOriginAllowed;
 exports.addCustomer = addCustomer;
 exports.updateCustomer = updateCustomer;
 exports.listCustomers = listCustomers;
@@ -18,13 +19,12 @@ const fs_1 = __importDefault(require("fs"));
 const crypto_1 = __importDefault(require("crypto"));
 // ── Konstanten ────────────────────────────────────────────────────
 const MAX_FIELD_LENGTH = 500;
-const SITE_ID_REGEX = /^[a-z0-9-]{1,50}$/; // nur Kleinbuchstaben, Zahlen, Bindestrich
+const SITE_ID_REGEX = /^[a-z0-9-]{1,50}$/;
 // ── Datenbank-Pfad ────────────────────────────────────────────────
 const DATA_DIR = path_1.default.join(process.cwd(), 'data');
 if (!fs_1.default.existsSync(DATA_DIR))
     fs_1.default.mkdirSync(DATA_DIR, { recursive: true });
 const db = new better_sqlite3_1.default(path_1.default.join(DATA_DIR, 'askly.db'));
-// WAL-Modus für bessere Performance und Sicherheit
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 // ── Tabellen erstellen ────────────────────────────────────────────
@@ -33,6 +33,7 @@ db.exec(`
     siteId        TEXT PRIMARY KEY,
     apiKeyHash    TEXT NOT NULL,
     websiteUrl    TEXT NOT NULL,
+    allowedDomains TEXT NOT NULL DEFAULT '[]',
     botName       TEXT NOT NULL DEFAULT 'Assistent',
     primaryColor  TEXT NOT NULL DEFAULT '#1B17FF',
     language      TEXT NOT NULL DEFAULT 'AUTO',
@@ -50,12 +51,17 @@ db.exec(`
     FOREIGN KEY (siteId) REFERENCES customers(siteId) ON DELETE CASCADE
   );
 `);
+// Migration: allowedDomains Spalte hinzufügen falls nicht vorhanden (für bestehende DBs)
+try {
+    db.exec(`ALTER TABLE customers ADD COLUMN allowedDomains TEXT NOT NULL DEFAULT '[]'`);
+}
+catch {
+    // Spalte existiert bereits — ignorieren
+}
 // ── Hilfsfunktionen ───────────────────────────────────────────────
-// API-Key hashen (SHA-256) — nie Klartext in DB speichern
 function hashApiKey(apiKey) {
     return crypto_1.default.createHash('sha256').update(apiKey).digest('hex');
 }
-// Input validieren und bereinigen
 function validateSiteId(siteId) {
     return SITE_ID_REGEX.test(siteId);
 }
@@ -80,8 +86,15 @@ function validateLanguage(lang) {
 function validatePlan(plan) {
     return ['basic', 'pro', 'enterprise'].includes(plan);
 }
+function validateDomains(domains) {
+    if (!Array.isArray(domains))
+        return false;
+    if (domains.length > 20)
+        return false;
+    return domains.every(d => typeof d === 'string' && d.length > 0 && d.length <= 100 && !d.includes('/'));
+}
 // ── Kunden-Funktionen ─────────────────────────────────────────────
-// Kunde anhand siteId + apiKey authentifizieren
+// Kunde anhand siteId + apiKey authentifizieren (für Admin-Operationen)
 function getCustomer(siteId, apiKey) {
     if (!validateSiteId(siteId))
         return null;
@@ -100,7 +113,7 @@ function getCustomer(siteId, apiKey) {
         return null;
     }
 }
-// Kunde nur anhand siteId laden (intern)
+// Kunde nur anhand siteId laden — für Origin-basierte Auth
 function getCustomerById(siteId) {
     if (!validateSiteId(siteId))
         return null;
@@ -115,9 +128,25 @@ function getCustomerById(siteId) {
         return null;
     }
 }
+// Origin gegen allowedDomains prüfen
+function isOriginAllowed(siteId, origin) {
+    const customer = getCustomerById(siteId);
+    if (!customer)
+        return false;
+    try {
+        const domains = JSON.parse(customer.allowedDomains || '[]');
+        if (domains.length === 0)
+            return false;
+        // Origin kann "https://meggen.ch" oder "http://localhost:3000" sein
+        const originHostname = new URL(origin).hostname;
+        return domains.some(d => d === originHostname || originHostname.endsWith('.' + d));
+    }
+    catch {
+        return false;
+    }
+}
 // Neuen Kunden hinzufügen
 function addCustomer(input) {
-    // Validierungen
     if (!validateSiteId(input.siteId)) {
         return { success: false, error: 'siteId darf nur Kleinbuchstaben, Zahlen und - enthalten (max 50 Zeichen)' };
     }
@@ -126,6 +155,9 @@ function addCustomer(input) {
     }
     if (!validateUrl(input.websiteUrl)) {
         return { success: false, error: 'Ungültige Website-URL' };
+    }
+    if (!validateDomains(input.allowedDomains)) {
+        return { success: false, error: 'allowedDomains muss ein Array von max 20 Domains sein' };
     }
     if (!validateColor(input.primaryColor)) {
         return { success: false, error: 'Farbe muss im Format #RRGGBB sein' };
@@ -138,13 +170,14 @@ function addCustomer(input) {
     }
     try {
         const stmt = db.prepare(`
-      INSERT INTO customers (siteId, apiKeyHash, websiteUrl, botName, primaryColor, language, fixedInfo, plan)
-      VALUES (@siteId, @apiKeyHash, @websiteUrl, @botName, @primaryColor, @language, @fixedInfo, @plan)
+      INSERT INTO customers (siteId, apiKeyHash, websiteUrl, allowedDomains, botName, primaryColor, language, fixedInfo, plan)
+      VALUES (@siteId, @apiKeyHash, @websiteUrl, @allowedDomains, @botName, @primaryColor, @language, @fixedInfo, @plan)
     `);
         stmt.run({
             siteId: input.siteId,
             apiKeyHash: hashApiKey(input.apiKey),
             websiteUrl: sanitizeString(input.websiteUrl, 500),
+            allowedDomains: JSON.stringify(input.allowedDomains),
             botName: sanitizeString(input.botName, 100),
             primaryColor: input.primaryColor,
             language: input.language,
@@ -172,6 +205,7 @@ function updateCustomer(siteId, fields) {
         fixedInfo: (v) => typeof v === 'string' && v.length <= 5000,
         plan: validatePlan,
         active: (v) => v === 0 || v === 1,
+        allowedDomains: validateDomains,
     };
     const sanitized = {};
     for (const [key, value] of Object.entries(fields)) {
@@ -179,7 +213,12 @@ function updateCustomer(siteId, fields) {
             continue;
         if (!allowed[key](value))
             return { success: false, error: `Ungültiger Wert für ${key}` };
-        sanitized[key] = typeof value === 'string' ? sanitizeString(value) : value;
+        if (key === 'allowedDomains') {
+            sanitized[key] = JSON.stringify(value);
+        }
+        else {
+            sanitized[key] = typeof value === 'string' ? sanitizeString(value) : value;
+        }
     }
     if (Object.keys(sanitized).length === 0) {
         return { success: false, error: 'Keine gültigen Felder zum Aktualisieren' };
@@ -199,7 +238,7 @@ function updateCustomer(siteId, fields) {
 function listCustomers() {
     try {
         return db.prepare(`
-      SELECT siteId, websiteUrl, botName, primaryColor, language, plan, active, createdAt
+      SELECT siteId, websiteUrl, allowedDomains, botName, primaryColor, language, plan, active, createdAt
       FROM customers ORDER BY createdAt DESC
     `).all();
     }
@@ -224,7 +263,7 @@ function saveCache(siteId, scrapedText, links) {
         stmt.run({
             siteId,
             scrapedText: sanitizeString(scrapedText, 100000),
-            links: JSON.stringify(links.slice(0, 200)), // max 200 Links
+            links: JSON.stringify(links.slice(0, 200)),
         });
     }
     catch (err) {
@@ -238,17 +277,13 @@ function getCache(siteId) {
         const row = db.prepare('SELECT * FROM sites_cache WHERE siteId = ?').get(siteId);
         if (!row)
             return null;
-        return {
-            ...row,
-            links: JSON.parse(row.links || '[]'),
-        };
+        return { ...row, links: JSON.parse(row.links || '[]') };
     }
     catch (err) {
         console.error('[DB] getCache error:', err);
         return null;
     }
 }
-// Cache-Alter in Stunden zurückgeben
 function getCacheAge(siteId) {
     if (!validateSiteId(siteId))
         return null;
