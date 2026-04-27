@@ -7,6 +7,9 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
 const crypto_1 = __importDefault(require("crypto"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const multer_1 = __importDefault(require("multer"));
 const database_1 = require("./database");
 const scraper_1 = require("./scraper");
 const app = (0, express_1.default)();
@@ -16,6 +19,28 @@ const MAX_CONTEXT_LENGTH = 25000;
 const CACHE_TTL_HOURS = 24;
 const ALLOWED_LANGUAGES = new Set(['DE', 'FR', 'IT', 'EN', 'CH', 'AUTO']);
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
+// ── Uploads Verzeichnis ───────────────────────────────────────────
+const UPLOADS_DIR = path_1.default.join(process.cwd(), 'uploads');
+if (!fs_1.default.existsSync(UPLOADS_DIR))
+    fs_1.default.mkdirSync(UPLOADS_DIR, { recursive: true });
+const upload = (0, multer_1.default)({
+    storage: multer_1.default.diskStorage({
+        destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+        filename: (req, _file, cb) => {
+            const siteId = (req.params.siteId || 'unknown').toLowerCase();
+            cb(null, `${siteId}.png`);
+        },
+    }),
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        if (['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.mimetype)) {
+            cb(null, true);
+        }
+        else {
+            cb(new Error('Nur Bilder erlaubt'));
+        }
+    },
+});
 // ── Rate Limiting ─────────────────────────────────────────────────
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000;
@@ -70,6 +95,8 @@ app.use((_req, res, next) => {
     res.removeHeader('X-Powered-By');
     next();
 });
+// ── Uploads ausliefern ────────────────────────────────────────────
+app.use('/uploads', express_1.default.static(UPLOADS_DIR));
 const client = new sdk_1.default({ apiKey: process.env.ANTHROPIC_API_KEY });
 // ── Hilfsfunktionen ───────────────────────────────────────────────
 function sanitizeString(str, maxLength) {
@@ -176,7 +203,6 @@ app.get('/widget.js', rateLimit(60), (req, res) => {
     res.send(generateWidgetJs(config));
 });
 function generateWidgetJs(config) {
-    // Standard Askly Logo falls kein eigenes Logo gesetzt
     const DEFAULT_LOGO = 'https://asklyteam-beep.github.io/chatbot-backend/logo%20.png';
     return `(function() {
   'use strict';
@@ -213,7 +239,6 @@ function generateWidgetJs(config) {
   var clientCacheTime = 0;
   var isSending = false;
 
-  // ── Styles ────────────────────────────────────────────────────
   var style = document.createElement('style');
   style.textContent = \`
     #askly-btn {
@@ -346,7 +371,6 @@ function generateWidgetJs(config) {
   \`;
   document.head.appendChild(style);
 
-  // ── HTML ──────────────────────────────────────────────────────
   var container = document.createElement('div');
   container.id = 'askly-root';
   container.innerHTML = \`
@@ -413,7 +437,6 @@ function generateWidgetJs(config) {
   \`;
   document.body.appendChild(container);
 
-  // ── Refs ──────────────────────────────────────────────────────
   var btn         = document.getElementById('askly-btn');
   var box         = document.getElementById('askly-box');
   var closeBtn    = document.getElementById('askly-close');
@@ -430,12 +453,10 @@ function generateWidgetJs(config) {
   var vStatus     = document.getElementById('askly-vstatus');
   var wBars       = document.querySelectorAll('.askly-bar');
 
-  // ── Utilities ─────────────────────────────────────────────────
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function isSafeUrl(url) { try { var p = new URL(url); return p.protocol==='https:'||p.protocol==='http:'; } catch{return false;} }
   function getTs() { var n = new Date(); return n.toLocaleDateString('de-CH',{weekday:'short',day:'2-digit',month:'2-digit'})+', '+n.toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}); }
 
-  // ── Sprache ───────────────────────────────────────────────────
   function applyLang(lang) {
     if (ALLOWED_LANGUAGES.indexOf(lang) < 0) lang = 'AUTO';
     var s = UI_STRINGS[lang] || UI_STRINGS.DE;
@@ -468,7 +489,6 @@ function generateWidgetJs(config) {
 
   document.addEventListener('click', function(){ langDrop.classList.remove('open'); });
 
-  // ── Context laden ─────────────────────────────────────────────
   async function loadContext() {
     if (clientCache && (Date.now() - clientCacheTime) < CLIENT_CACHE_TTL) { context = clientCache.text || ''; return; }
     try {
@@ -481,7 +501,6 @@ function generateWidgetJs(config) {
     } catch(e) { context = ''; }
   }
 
-  // ── Nachrichten ───────────────────────────────────────────────
   function addMsg(html, type, withActions) {
     var wrap = document.createElement('div');
     wrap.className = 'askly-msg-wrap ' + (type === 'user' ? 'user' : 'bot');
@@ -531,7 +550,6 @@ function generateWidgetJs(config) {
     }).join('<br>');
   }
 
-  // ── Senden ────────────────────────────────────────────────────
   async function send() {
     if (isSending) return;
     var raw = input.value.trim();
@@ -554,7 +572,6 @@ function generateWidgetJs(config) {
     finally { sendBtn.disabled = false; isSending = false; }
   }
 
-  // ── TTS ───────────────────────────────────────────────────────
   function speakText(text, btn) {
     if (!window.speechSynthesis) return;
     if (currentSpeakBtn === btn) {
@@ -572,7 +589,6 @@ function generateWidgetJs(config) {
     window.speechSynthesis.speak(utt);
   }
 
-  // ── Voice ─────────────────────────────────────────────────────
   var recognition = null, listening = false, voiceTranscript = '', timerInterval = null, voiceSecs = 0, confirmPending = false;
   var audioCtx = null, analyser = null, micStream = null, animFrame = null;
   function fmtTime(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
@@ -635,7 +651,6 @@ function generateWidgetJs(config) {
     if(recognition)try{recognition.stop();}catch(e){hideRec();}else{hideRec();}
   };
 
-  // ── Events ────────────────────────────────────────────────────
   btn.onclick = function() {
     var opening = !box.classList.contains('open');
     box.classList.toggle('open');
@@ -777,6 +792,22 @@ app.patch('/api/admin/customers/:siteId', rateLimit(RATE_LIMIT_ADMIN), (req, res
         return;
     }
     res.json({ message: 'Customer updated successfully.' });
+});
+// ── Admin: Logo hochladen ─────────────────────────────────────────
+app.post('/api/admin/customers/:siteId/logo', rateLimit(RATE_LIMIT_ADMIN), upload.single('logo'), (req, res) => {
+    const adminKey = sanitizeString(req.headers['x-admin-key'], 200);
+    if (!validateAdminKey(adminKey)) {
+        res.status(401).json({ error: 'Unauthorized.' });
+        return;
+    }
+    if (!req.file) {
+        res.status(400).json({ error: 'Kein Bild hochgeladen.' });
+        return;
+    }
+    const siteId = sanitizeString(req.params.siteId, 50).toLowerCase();
+    const logoUrl = `https://${req.get('host')}/uploads/${siteId}.png`;
+    (0, database_1.updateCustomer)(siteId, { logoUrl });
+    res.json({ message: 'Logo hochgeladen.', logoUrl });
 });
 // ── Admin: Cache löschen ──────────────────────────────────────────
 app.delete('/api/admin/cache/:siteId', rateLimit(RATE_LIMIT_ADMIN), (req, res) => {
