@@ -49,19 +49,11 @@ setInterval(() => {
     }
 }, 5 * 60 * 1000);
 // ── CORS ──────────────────────────────────────────────────────────
-const ADMIN_ALLOWED_ORIGINS = new Set([
-    'http://localhost:3000',
-    'http://localhost:5500',
-    'http://127.0.0.1:5500',
-]);
 app.use((0, cors_1.default)({
-    origin: (origin, callback) => {
-        if (!origin) {
-            callback(null, true);
-            return;
-        }
+    origin: (origin, callback) => { if (!origin) {
         callback(null, true);
-    },
+        return;
+    } callback(null, true); },
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-admin-key'],
     credentials: true,
@@ -151,9 +143,8 @@ function getCustomerByOrigin(siteId, origin) {
     const customer = (0, database_1.getCustomerById)(siteId);
     if (!customer)
         return { customer: null, error: 'Unknown siteId.' };
-    if (!isLocalhost && !(0, database_1.isOriginAllowed)(siteId, origin)) {
+    if (!isLocalhost && !(0, database_1.isOriginAllowed)(siteId, origin))
         return { customer: null, error: 'Origin not allowed.' };
-    }
     return { customer };
 }
 // ── Health Check ──────────────────────────────────────────────────
@@ -177,6 +168,7 @@ app.get('/widget.js', rateLimit(60), (req, res) => {
         botName: customer.botName,
         primaryColor: customer.primaryColor,
         language: customer.language,
+        logoUrl: customer.logoUrl || '',
         backendUrl: `https://${req.get('host')}`,
     };
     res.type('js');
@@ -184,6 +176,8 @@ app.get('/widget.js', rateLimit(60), (req, res) => {
     res.send(generateWidgetJs(config));
 });
 function generateWidgetJs(config) {
+    // Standard Askly Logo falls kein eigenes Logo gesetzt
+    const DEFAULT_LOGO = 'https://asklyteam-beep.github.io/chatbot-backend/logo%20.png';
     return `(function() {
   'use strict';
 
@@ -193,6 +187,7 @@ function generateWidgetJs(config) {
   var BOT_NAME = ASKLY_CONFIG.botName;
   var PRIMARY_COLOR = ASKLY_CONFIG.primaryColor;
   var DEFAULT_LANGUAGE = ASKLY_CONFIG.language;
+  var LOGO_URL = ASKLY_CONFIG.logoUrl || '${DEFAULT_LOGO}';
 
   var CLIENT_CACHE_TTL = 6 * 60 * 60 * 1000;
   var MAX_MESSAGE_LENGTH = 500;
@@ -214,7 +209,6 @@ function generateWidgetJs(config) {
   var selectedLanguage = DEFAULT_LANGUAGE || 'AUTO';
   var currentSpeech = null;
   var currentSpeakBtn = null;
-  var currentSpeakText = '';
   var clientCache = null;
   var clientCacheTime = 0;
   var isSending = false;
@@ -362,7 +356,7 @@ function generateWidgetJs(config) {
     <div id="askly-box" role="dialog" aria-modal="true">
       <div id="askly-header">
         <div id="askly-header-left">
-          <img id="askly-logo" src="https://asklyteam-beep.github.io/chatbot-backend/logo%20.png" alt="Askly"/>
+          <img id="askly-logo" src="\${LOGO_URL}" alt="\${BOT_NAME}"/>
           <span id="askly-title">\${BOT_NAME}</span>
         </div>
         <div id="askly-header-right">
@@ -437,16 +431,9 @@ function generateWidgetJs(config) {
   var wBars       = document.querySelectorAll('.askly-bar');
 
   // ── Utilities ─────────────────────────────────────────────────
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-  function isSafeUrl(url) {
-    try { var p = new URL(url); return p.protocol==='https:'||p.protocol==='http:'; } catch{return false;}
-  }
-  function getTs() {
-    var n = new Date();
-    return n.toLocaleDateString('de-CH',{weekday:'short',day:'2-digit',month:'2-digit'})+', '+n.toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-  }
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function isSafeUrl(url) { try { var p = new URL(url); return p.protocol==='https:'||p.protocol==='http:'; } catch{return false;} }
+  function getTs() { var n = new Date(); return n.toLocaleDateString('de-CH',{weekday:'short',day:'2-digit',month:'2-digit'})+', '+n.toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}); }
 
   // ── Sprache ───────────────────────────────────────────────────
   function applyLang(lang) {
@@ -483,18 +470,14 @@ function generateWidgetJs(config) {
 
   // ── Context laden ─────────────────────────────────────────────
   async function loadContext() {
-    if (clientCache && (Date.now() - clientCacheTime) < CLIENT_CACHE_TTL) {
-      context = clientCache.text || '';
-      return;
-    }
+    if (clientCache && (Date.now() - clientCacheTime) < CLIENT_CACHE_TTL) { context = clientCache.text || ''; return; }
     try {
       var url = BACKEND + '/api/scrape?siteId=' + encodeURIComponent(SITE_ID);
       var res = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
       if (!res.ok) throw new Error('Scrape failed');
       var data = await res.json();
       context = typeof data.text === 'string' ? data.text : '';
-      clientCache = data;
-      clientCacheTime = Date.now();
+      clientCache = data; clientCacheTime = Date.now();
     } catch(e) { context = ''; }
   }
 
@@ -502,43 +485,32 @@ function generateWidgetJs(config) {
   function addMsg(html, type, withActions) {
     var wrap = document.createElement('div');
     wrap.className = 'askly-msg-wrap ' + (type === 'user' ? 'user' : 'bot');
-
     var bubble = document.createElement('div');
     bubble.className = 'askly-msg ' + (type === 'user' ? 'user' : 'bot');
     bubble.innerHTML = html;
     wrap.appendChild(bubble);
-
     var time = document.createElement('span');
     time.className = 'askly-msg-time';
     time.textContent = getTs();
     wrap.appendChild(time);
-
     if (type === 'bot' && withActions) {
       var actions = document.createElement('div');
       actions.className = 'askly-msg-actions';
-
       var thumbUp = document.createElement('button');
       thumbUp.className = 'askly-thumb';
       thumbUp.innerHTML = '<svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
-
       var thumbDown = document.createElement('button');
       thumbDown.className = 'askly-thumb';
       thumbDown.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>';
-
       thumbUp.onclick = function(){ thumbUp.classList.toggle('active',!thumbUp.classList.contains('active')); thumbDown.classList.remove('active'); };
       thumbDown.onclick = function(){ thumbDown.classList.toggle('active',!thumbDown.classList.contains('active')); thumbUp.classList.remove('active'); };
-
       var speakBtn = document.createElement('button');
       speakBtn.className = 'askly-speak';
       speakBtn.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
       speakBtn.onclick = function(){ speakText(bubble.innerHTML, speakBtn); };
-
-      actions.appendChild(thumbUp);
-      actions.appendChild(thumbDown);
-      actions.appendChild(speakBtn);
+      actions.appendChild(thumbUp); actions.appendChild(thumbDown); actions.appendChild(speakBtn);
       wrap.appendChild(actions);
     }
-
     messages.appendChild(wrap);
     messages.scrollTop = messages.scrollHeight;
     return bubble;
@@ -551,8 +523,7 @@ function generateWidgetJs(config) {
       return line.replace(/(https?:\\/\\/[^\\s<>"']+)/g, function(url){
         if (!isSafeUrl(url)) return escHtml(url);
         try {
-          var p = new URL(url);
-          var segs = p.pathname.split('/').filter(Boolean);
+          var p = new URL(url); var segs = p.pathname.split('/').filter(Boolean);
           var label = segs.length > 0 ? decodeURIComponent(segs[segs.length-1]).replace(/-/g,' ') : p.hostname;
           return '<a href="'+escHtml(url)+'" target="_blank" rel="noopener">'+escHtml(label)+'</a>';
         } catch { return escHtml(url); }
@@ -566,15 +537,12 @@ function generateWidgetJs(config) {
     var raw = input.value.trim();
     if (!raw || raw.length > MAX_MESSAGE_LENGTH) return;
     var strings = UI_STRINGS[selectedLanguage] || UI_STRINGS.DE;
-    isSending = true;
-    input.value = '';
-    sendBtn.disabled = true;
+    isSending = true; input.value = ''; sendBtn.disabled = true;
     addMsg(escHtml(raw), 'user');
     var loading = addMsg('<span class="askly-dot"></span><span class="askly-dot"></span><span class="askly-dot"></span>', 'bot');
     try {
       var res = await fetch(BACKEND + '/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: raw, context: context, siteId: SITE_ID, language: selectedLanguage }),
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -582,12 +550,8 @@ function generateWidgetJs(config) {
       if (typeof data.reply !== 'string') throw new Error('Invalid response');
       loading.parentElement.remove();
       addMsg(cleanReply(data.reply || strings.noAnswer), 'bot', true);
-    } catch(e) {
-      loading.innerHTML = escHtml(strings.error);
-    } finally {
-      sendBtn.disabled = false;
-      isSending = false;
-    }
+    } catch(e) { loading.innerHTML = escHtml(strings.error); }
+    finally { sendBtn.disabled = false; isSending = false; }
   }
 
   // ── TTS ───────────────────────────────────────────────────────
@@ -611,9 +575,7 @@ function generateWidgetJs(config) {
   // ── Voice ─────────────────────────────────────────────────────
   var recognition = null, listening = false, voiceTranscript = '', timerInterval = null, voiceSecs = 0, confirmPending = false;
   var audioCtx = null, analyser = null, micStream = null, animFrame = null;
-
   function fmtTime(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
-
   function startWave(stream) {
     try {
       audioCtx = new (window.AudioContext||window.webkitAudioContext)();
@@ -626,14 +588,12 @@ function generateWidgetJs(config) {
       draw();
     } catch(e){}
   }
-
   function stopWave() {
     if(animFrame){cancelAnimationFrame(animFrame);animFrame=null;}
     if(audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}
     if(micStream){micStream.getTracks().forEach(function(t){t.stop();});micStream=null;}
     wBars.forEach(function(b){b.style.height='4px';});
   }
-
   function showRec() {
     vRecorder.classList.add('active'); micBtn.classList.add('recording');
     vStatus.textContent='Aufnahme läuft...'; voiceTranscript=''; confirmPending=false;
@@ -644,7 +604,6 @@ function generateWidgetJs(config) {
     vRecorder.classList.remove('active'); micBtn.classList.remove('recording');
     clearInterval(timerInterval); stopWave(); voiceSecs=0; vTimer.textContent='0:00'; voiceTranscript=''; confirmPending=false;
   }
-
   async function startVoice() {
     if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){alert('Spracheingabe nur in Chrome/Edge.');return;}
     try { micStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false}); startWave(micStream); } catch(e){}
@@ -668,7 +627,6 @@ function generateWidgetJs(config) {
     };
     recognition.start();
   }
-
   micBtn.onclick=function(){if(listening){confirmPending=false;if(recognition)try{recognition.stop();}catch(e){}listening=false;hideRec();}else{startVoice();}};
   vCancel.onclick=function(){confirmPending=false;if(recognition)try{recognition.stop();}catch(e){}listening=false;hideRec();};
   vConfirm.onclick=function(){
@@ -787,6 +745,7 @@ app.post('/api/admin/customers', rateLimit(RATE_LIMIT_ADMIN), (req, res) => {
         primaryColor: sanitizeString(req.body.primaryColor, 7),
         language: sanitizeString(req.body.language, 10).toUpperCase(),
         fixedInfo: sanitizeString(req.body.fixedInfo, 5000),
+        logoUrl: sanitizeString(req.body.logoUrl || '', 500),
         plan: sanitizeString(req.body.plan, 20).toLowerCase(),
     });
     if (!result.success) {
@@ -802,8 +761,7 @@ app.get('/api/admin/customers', rateLimit(RATE_LIMIT_ADMIN), (req, res) => {
         res.status(401).json({ error: 'Unauthorized.' });
         return;
     }
-    const customers = (0, database_1.listCustomers)();
-    res.json({ count: customers.length, customers });
+    res.json({ count: (0, database_1.listCustomers)().length, customers: (0, database_1.listCustomers)() });
 });
 // ── Admin: Kunden aktualisieren ───────────────────────────────────
 app.patch('/api/admin/customers/:siteId', rateLimit(RATE_LIMIT_ADMIN), (req, res) => {
