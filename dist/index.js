@@ -41,7 +41,7 @@ const upload = (0, multer_1.default)({
         }
     },
 });
-// ── Rate Limiting ─────────────────────────────────────────────────
+// ── Rate Limiting (pro Minute) ────────────────────────────────────
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000;
 const RATE_LIMIT_CHAT = 30;
@@ -66,11 +66,35 @@ function rateLimit(maxRequests) {
         next();
     };
 }
+// ── Daily Limit (100 Chat-Anfragen pro IP pro Tag) ────────────────
+const dailyLimitMap = new Map();
+const DAILY_CHAT_LIMIT = 100;
+const DAY_MS = 24 * 60 * 60 * 1000;
+function dailyLimit(req, res, next) {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const entry = dailyLimitMap.get(ip);
+    if (!entry || now > entry.resetAt) {
+        dailyLimitMap.set(ip, { count: 1, resetAt: now + DAY_MS });
+        next();
+        return;
+    }
+    if (entry.count >= DAILY_CHAT_LIMIT) {
+        res.status(429).json({ error: 'Daily limit reached. Please try again tomorrow.' });
+        return;
+    }
+    entry.count++;
+    next();
+}
 setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of rateLimitMap.entries()) {
         if (now > entry.resetAt)
             rateLimitMap.delete(key);
+    }
+    for (const [key, entry] of dailyLimitMap.entries()) {
+        if (now > entry.resetAt)
+            dailyLimitMap.delete(key);
     }
 }, 5 * 60 * 1000);
 // ── CORS ──────────────────────────────────────────────────────────
@@ -670,7 +694,7 @@ function generateWidgetJs(config) {
 })();`;
 }
 // ── Chat Endpoint ─────────────────────────────────────────────────
-app.post('/api/chat', rateLimit(RATE_LIMIT_CHAT), async (req, res) => {
+app.post('/api/chat', rateLimit(RATE_LIMIT_CHAT), dailyLimit, async (req, res) => {
     const message = sanitizeString(req.body.message, MAX_MESSAGE_LENGTH);
     const context = sanitizeString(req.body.context, MAX_CONTEXT_LENGTH);
     const siteId = sanitizeString(req.body.siteId, 50).toLowerCase();
